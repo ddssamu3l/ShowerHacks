@@ -1,0 +1,1617 @@
+{
+  "$schema": "../../packages/contracts/session.schema.json",
+  "schemaVersion": 1,
+  "id": "commit-to-love",
+  "sessionVersion": 1,
+  "title": "Commit to Love",
+  "description": "Ten requests. Three agents. Six users and absolutely no romantic guarantees.",
+  "agents": [
+    {
+      "id": "frontend",
+      "name": "Agent 01",
+      "role": "FRONTEND"
+    },
+    {
+      "id": "backend",
+      "name": "Agent 02",
+      "role": "BACKEND"
+    },
+    {
+      "id": "qa",
+      "name": "Agent 03",
+      "role": "QA / CHAOS"
+    }
+  ],
+  "turns": [
+    {
+      "id": "swipe",
+      "prompt": "Build a dating app for developers. Let users swipe right on green flags and left on Java.",
+      "agent": {
+        "durationMs": 12000,
+        "events": [
+          {
+            "id": "swipe-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Sketching a swipe card. Border radius is my love language.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "swipe-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Adding profiles. Relationship status defaults to merge conflict.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "swipe-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Writing the first acceptance test: two people must exist.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "swipe-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Added dark mode. Light mode was a red flag.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "swipe-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Seeded six developers. Five are the same guy on different laptops.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "swipe-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- swipe",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "swipe-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "swipe-6",
+            "output": "FAIL: everyone swiped left on themselves.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "swipe-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "swipe-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/swipe-card.tsx",
+            "language": "tsx",
+            "content": "export const swipeLabels = { right: \"Green flag\", left: \"Java\" };\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "swipe-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/profiles.ts",
+            "language": "typescript",
+            "content": "export const profileDefaults = { relationshipStatus: \"merge conflict\" };\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "swipe-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- swipe --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "swipe-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "swipe-11",
+            "output": "PASS: self-swipes are rejected. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "swipe-13",
+            "atMs": 10800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Cards now support emotional unavailability.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "swipe-14",
+            "atMs": 11200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Profiles saved. Nobody has committed yet.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "swipe-15",
+            "atMs": 11600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Self-swipes blocked. Human interaction remains untested.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "swipe-16",
+            "atMs": 12000,
+            "type": "assistant_message",
+            "text": "Request 1/10 shipped. Self-swipes blocked. Human interaction remains untested."
+          }
+        ]
+      }
+    },
+    {
+      "id": "compatibility",
+      "prompt": "Add AI compatibility scores based on GitHub commits. More green squares means more emotional availability.",
+      "agent": {
+        "durationMs": 14000,
+        "events": [
+          {
+            "id": "compatibility-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Designing a compatibility meter. It needs more green.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "compatibility-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Training on six profiles. Calling this big data.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "compatibility-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Checking whether commit frequency predicts texting back.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "compatibility-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "The meter goes to 101. Investors like growth.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "compatibility-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Found a bot with 90,000 commits. It is our most eligible bachelor.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "compatibility-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- compatibility",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "compatibility-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "compatibility-6",
+            "output": "FAIL: the bot matched with every user and the database.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "compatibility-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "compatibility-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/compatibility.tsx",
+            "language": "tsx",
+            "content": "export const compatibilityLabel = \"Green squares, questionable chemistry\";\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "compatibility-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/compatibility.ts",
+            "language": "typescript",
+            "content": "export const eligible = (profile: { isBot: boolean }) => !profile.isBot;\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "compatibility-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- compatibility --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "compatibility-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "compatibility-11",
+            "output": "PASS: bot accounts cannot match. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "compatibility-13",
+            "atMs": 12800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Clamped the meter. Love now respects integer bounds.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "compatibility-14",
+            "atMs": 13200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Filtered bot accounts. Market size down 83 percent.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "compatibility-15",
+            "atMs": 13600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Bot romance regression covered. Feelings still out of scope.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "compatibility-16",
+            "atMs": 14000,
+            "type": "assistant_message",
+            "text": "Request 2/10 shipped. Bot romance regression covered. Feelings still out of scope."
+          }
+        ]
+      }
+    },
+    {
+      "id": "icebreakers",
+      "prompt": "Write AI icebreakers for every match. Make them sound human, but not like a human who says synergy.",
+      "agent": {
+        "durationMs": 16000,
+        "events": [
+          {
+            "id": "icebreakers-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Adding a conversation starter button. It looks nervous.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "icebreakers-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Generating a greeting with absolutely no corporate jargon.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "icebreakers-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Scanning pickup lines for quarterly business objectives.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "icebreakers-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Agent 02 sent a 900-word hello. Adding a scroll bar.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "icebreakers-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "First draft: Let us leverage our romantic synergies.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "icebreakers-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- icebreakers",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "icebreakers-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "icebreakers-6",
+            "output": "FAIL: the forbidden word is the entire personality.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "icebreakers-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "icebreakers-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/icebreaker.tsx",
+            "language": "tsx",
+            "content": "export const buttonLabel = \"Make the first API call\";\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "icebreakers-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/icebreakers.ts",
+            "language": "typescript",
+            "content": "export const greeting = \"Is your weekend free, or just your software?\";\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "icebreakers-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- icebreakers --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "icebreakers-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "icebreakers-11",
+            "output": "PASS: synergy is excluded. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "icebreakers-13",
+            "atMs": 14800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Icebreakers now fit on one screen. A breakthrough.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "icebreakers-14",
+            "atMs": 15200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "New greeting: Is your weekend free, or just your software?",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "icebreakers-15",
+            "atMs": 15600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Jargon filter passes. Cringe is a known limitation.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "icebreakers-16",
+            "atMs": 16000,
+            "type": "assistant_message",
+            "text": "Request 3/10 shipped. Jargon filter passes. Cringe is a known limitation."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ghosting",
+      "prompt": "Add a ghosting dashboard with charts. If someone takes three days to reply, label it eventual consistency.",
+      "agent": {
+        "durationMs": 12000,
+        "events": [
+          {
+            "id": "ghosting-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Adding one chart. Accidentally added forty-six.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "ghosting-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Calculating reply latency in business heartbreaks.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "ghosting-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Testing a message sent three days ago. Still waiting.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "ghosting-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Agent 02 wants a loading state. It is the whole relationship.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "ghosting-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reply status: eventually consistent, emotionally unavailable.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "ghosting-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- ghosting",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "ghosting-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "ghosting-6",
+            "output": "FAIL: dashboard marks the entire user base as missing.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "ghosting-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "ghosting-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/ghosting.tsx",
+            "language": "tsx",
+            "content": "export const charts = [\"Reply latency\", \"Mixed signals\", \"Emotional damage\"];\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "ghosting-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/ghosting.ts",
+            "language": "typescript",
+            "content": "export const lateReplyLabel = \"eventual consistency\";\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "ghosting-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- ghosting --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "ghosting-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "ghosting-11",
+            "output": "PASS: three-day replies get the correct label. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "ghosting-13",
+            "atMs": 10800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Reduced to three charts. Kept the emotional damage donut.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "ghosting-14",
+            "atMs": 11200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Three-day replies now have the requested diplomatic label.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "ghosting-15",
+            "atMs": 11600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Slow replies are classified. Closure is not guaranteed.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "ghosting-16",
+            "atMs": 12000,
+            "type": "assistant_message",
+            "text": "Request 4/10 shipped. Slow replies are classified. Closure is not guaranteed."
+          }
+        ]
+      }
+    },
+    {
+      "id": "premium",
+      "prompt": "Add a premium plan that shows who viewed your profile. Charge extra to pretend you did not check.",
+      "agent": {
+        "durationMs": 14000,
+        "events": [
+          {
+            "id": "premium-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Designing a premium badge. Gold makes loneliness scalable.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "premium-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Adding a pretend-you-did-not-check toggle.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "premium-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Checking whether incognito mode announces itself.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "premium-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "The upgrade button now whispers limited time offer.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "premium-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Logged an event named secret-profile-view. Very discreet.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "premium-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- premium",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "premium-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "premium-6",
+            "output": "FAIL: secret views send a push notification saying SECRET VIEW.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "premium-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "premium-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/premium.tsx",
+            "language": "tsx",
+            "content": "export const premiumPerks = [\"Profile views\", \"Plausible deniability\"];\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "premium-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/premium.ts",
+            "language": "typescript",
+            "content": "export const stealthView = { notifyProfileOwner: false };\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "premium-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- premium --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "premium-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "premium-11",
+            "output": "PASS: stealth views do not notify. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "premium-13",
+            "atMs": 12800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Premium copy now contains fewer exclamation marks than users.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "premium-14",
+            "atMs": 13200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Removed the notification. The secret stays in this fake demo.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "premium-15",
+            "atMs": 13600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Stealth view test passes. Revenue is still imaginary.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "premium-16",
+            "atMs": 14000,
+            "type": "assistant_message",
+            "text": "Request 5/10 shipped. Stealth view test passes. Revenue is still imaginary."
+          }
+        ]
+      }
+    },
+    {
+      "id": "standup",
+      "prompt": "Build a date scheduler that finds a time when neither person has standup. Good luck.",
+      "agent": {
+        "durationMs": 16000,
+        "events": [
+          {
+            "id": "standup-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Drawing a calendar. Every cell says quick sync.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "standup-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Intersecting two calendars. Result: the heat death of the universe.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "standup-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Testing availability outside recurring meetings.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "standup-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Added a tentative badge. It covers the entire screen.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "standup-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Found a slot at 3 AM. Labeling it founder hours.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "standup-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- standup",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "standup-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "standup-6",
+            "output": "FAIL: the proposed date conflicts with a meeting about fewer meetings.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "standup-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "standup-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/date-scheduler.tsx",
+            "language": "tsx",
+            "content": "export const emptyCalendarCopy = \"Try again after the reorg.\";\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "standup-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/date-scheduler.ts",
+            "language": "typescript",
+            "content": "export const noAvailability = { slots: [], reason: \"too many standups\" };\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "standup-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- standup --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "standup-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "standup-11",
+            "output": "PASS: empty calendars do not invent slots. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "standup-13",
+            "atMs": 14800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Showing timezone labels. Preventing international ghosting.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "standup-14",
+            "atMs": 15200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Returning no slots instead of inventing free time.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "standup-15",
+            "atMs": 15600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Empty-state test passes. Romance remains on the backlog.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "standup-16",
+            "atMs": 16000,
+            "type": "assistant_message",
+            "text": "Request 6/10 shipped. Empty-state test passes. Romance remains on the backlog."
+          }
+        ]
+      }
+    },
+    {
+      "id": "scale",
+      "prompt": "Scale the dating app to ten million users. We currently have six, including my mom and a load test.",
+      "agent": {
+        "durationMs": 12000,
+        "events": [
+          {
+            "id": "scale-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Formatting large numbers. Practicing with six.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "scale-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Adding a queue for the anticipated stampede.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "scale-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Starting a simulated ten-million-user load test.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "scale-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Dashboard says 10M. It is a font size setting.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "scale-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Agent 03 sent traffic. Our queue has developed a queue.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "scale-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- scale",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "scale-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "scale-6",
+            "output": "FAIL: load test fell in love with the health check.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "scale-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "scale-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/user-count.tsx",
+            "language": "tsx",
+            "content": "export const formatUsers = (count: number) => count.toLocaleString();\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "scale-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/queue.ts",
+            "language": "typescript",
+            "content": "export const demoQueue = { capacity: 6, overflow: \"please be patient\" };\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "scale-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- scale --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "scale-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "scale-11",
+            "output": "PASS: queue overflow is handled. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "scale-13",
+            "atMs": 10800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Showing real counts. The dashboard looks a little empty.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "scale-14",
+            "atMs": 11200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Added backpressure. Six users can now wait at enterprise scale.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "scale-15",
+            "atMs": 11600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Smoke test passes. Ten million is still a marketing claim.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "scale-16",
+            "atMs": 12000,
+            "type": "assistant_message",
+            "text": "Request 7/10 shipped. Smoke test passes. Ten million is still a marketing claim."
+          }
+        ]
+      }
+    },
+    {
+      "id": "red-flags",
+      "prompt": "Add red flag detection. Saying I built my own auth should trigger a small but respectful siren.",
+      "agent": {
+        "durationMs": 14000,
+        "events": [
+          {
+            "id": "red-flags-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Picking a respectful shade of emergency red.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "red-flags-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Classifying bios. Found a homemade encryption enthusiast.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "red-flags-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Checking the siren volume against basic human dignity.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "red-flags-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Siren animation looks like a Series A announcement.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "red-flags-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Classifier flagged Agent 02. That is me.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "red-flags-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- red-flags",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "red-flags-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "red-flags-6",
+            "output": "FAIL: the siren triggers on I did not build my own auth.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "red-flags-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "red-flags-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/red-flags.tsx",
+            "language": "tsx",
+            "content": "export const warningBadge = { label: \"Let us talk about auth\", volume: 0 };\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "red-flags-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/red-flags.ts",
+            "language": "typescript",
+            "content": "export const examples = { flagged: \"I built my own auth\", safe: \"I did not build my own auth\" };\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "red-flags-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- red-flags --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "red-flags-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "red-flags-11",
+            "output": "PASS: negated phrases do not trigger. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "red-flags-13",
+            "atMs": 12800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Replaced air horn with a small warning badge.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "red-flags-14",
+            "atMs": 13200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Added negation handling. Personal growth achieved.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "red-flags-15",
+            "atMs": 13600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Negation test passes. Confidence is now less terrifying.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "red-flags-16",
+            "atMs": 14000,
+            "type": "assistant_message",
+            "text": "Request 8/10 shipped. Negation test passes. Confidence is now less terrifying."
+          }
+        ]
+      }
+    },
+    {
+      "id": "breakup",
+      "prompt": "Write a breakup message generator. Keep it kind and never say we should remain microservices.",
+      "agent": {
+        "durationMs": 16000,
+        "events": [
+          {
+            "id": "breakup-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Adding a confirmation dialog. This action has feelings.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "breakup-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Generating compassionate exit messages.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "breakup-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Searching templates for distributed relationship terminology.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "breakup-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Agent 02 requested a retry button. Mixed signals detected.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "breakup-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Draft: It is not you. It is our incompatible API contracts.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "breakup-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- breakup",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "breakup-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "breakup-6",
+            "output": "FAIL: recommended remaining microservices with shared custody of Redis.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "breakup-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "breakup-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/breakup.tsx",
+            "language": "tsx",
+            "content": "export const confirmLabel = \"Send with kindness\";\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "breakup-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/breakup.ts",
+            "language": "typescript",
+            "content": "export const message = \"Thank you for our time together. I wish you well.\";\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "breakup-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- breakup --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "breakup-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "breakup-11",
+            "output": "PASS: breakup copy contains no microservices. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "breakup-13",
+            "atMs": 14800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Removed the retry button. Boundaries are now a feature.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "breakup-14",
+            "atMs": 15200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "New draft: Thank you for our time together. I wish you well.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "breakup-15",
+            "atMs": 15600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Kindness checks pass. No infrastructure mentioned.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "breakup-16",
+            "atMs": 16000,
+            "type": "assistant_message",
+            "text": "Request 9/10 shipped. Kindness checks pass. No infrastructure mentioned."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ship",
+      "prompt": "Make the dating app production ready. Fix everything, change nothing, and do not mention the six users.",
+      "agent": {
+        "durationMs": 12000,
+        "events": [
+          {
+            "id": "ship-1",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Polishing the launch screen. The button is now emotionally round.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "ship-2",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reading production checklist. It just says vibes.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "ship-3",
+            "atMs": 0,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Running the full suite. Putting on a tiny hard hat.",
+            "activity": "analyzing",
+            "progress": 5
+          },
+          {
+            "id": "ship-4",
+            "atMs": 1600,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Agent 03 found a broken link. Blaming the gradient.",
+            "activity": "writing",
+            "progress": 35
+          },
+          {
+            "id": "ship-5",
+            "atMs": 2200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "The build failed. Asked AI. It suggested the same code.",
+            "activity": "writing",
+            "progress": 40
+          },
+          {
+            "id": "ship-6",
+            "atMs": 3000,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- ship",
+            "activity": "testing",
+            "progress": 30
+          },
+          {
+            "id": "ship-7",
+            "atMs": 4400,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "ship-6",
+            "output": "FAIL: launch banner promises infinite uptime and a soulmate.",
+            "status": "error",
+            "activity": "error",
+            "progress": 35
+          },
+          {
+            "id": "ship-8",
+            "atMs": 5600,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Reviewing Agent 03's report. Replacing confidence with a small fix.",
+            "activity": "fixing",
+            "progress": 60
+          },
+          {
+            "id": "ship-9",
+            "atMs": 6500,
+            "type": "file_update",
+            "agentId": "frontend",
+            "path": "src/launch.tsx",
+            "language": "tsx",
+            "content": "export const launchCopy = \"A dating app demo. Results may vary wildly.\";\n",
+            "activity": "writing",
+            "progress": 75
+          },
+          {
+            "id": "ship-10",
+            "atMs": 7200,
+            "type": "file_update",
+            "agentId": "backend",
+            "path": "src/launch.ts",
+            "language": "typescript",
+            "content": "export const release = { mode: \"demo\", guaranteedSoulmate: false };\n",
+            "activity": "fixing",
+            "progress": 80
+          },
+          {
+            "id": "ship-11",
+            "atMs": 8200,
+            "type": "tool_call",
+            "agentId": "qa",
+            "tool": "terminal",
+            "input": "npm test -- ship --retry",
+            "activity": "testing",
+            "progress": 70
+          },
+          {
+            "id": "ship-12",
+            "atMs": 9600,
+            "type": "tool_result",
+            "agentId": "qa",
+            "callId": "ship-11",
+            "output": "PASS: launch copy makes no uptime promises. Tests retained: all of them. Confidence: cautiously excessive.",
+            "status": "success",
+            "progress": 95
+          },
+          {
+            "id": "ship-13",
+            "atMs": 10800,
+            "type": "assistant_message",
+            "agentId": "frontend",
+            "text": "Launch copy now promises a demo. Expectations successfully lowered.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "ship-14",
+            "atMs": 11200,
+            "type": "assistant_message",
+            "agentId": "backend",
+            "text": "Fixed the config. Same code, different environment. Naturally.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "ship-15",
+            "atMs": 11600,
+            "type": "assistant_message",
+            "agentId": "qa",
+            "text": "Demo checks pass. Production readiness remains a fictional feature.",
+            "activity": "done",
+            "progress": 100
+          },
+          {
+            "id": "ship-16",
+            "atMs": 12000,
+            "type": "assistant_message",
+            "text": "Request 10/10 shipped. Demo checks pass. Production readiness remains a fictional feature."
+          }
+        ]
+      }
+    }
+  ]
+}

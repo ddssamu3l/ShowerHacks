@@ -122,6 +122,56 @@ Validation requires unique turn IDs, event IDs unique across the whole session, 
 
 Run `npm run validate:sessions` after every content edit. Editor JSON Schema checks shape; the command additionally checks event ordering and references. If the shared schema changes, run `npm run schema:generate` and commit the generated file. Runtime session-loading routes must also call `sessionSchema.parse()` rather than trusting a TypeScript cast.
 
+## Three agent windows and ten prompts
+
+`content/sessions/commit-to-love.json` is a complete ten-turn session about a
+fictional developer dating app. The requests share a project but each has its own
+punchline: swiping, compatibility, icebreakers, ghosting analytics, premium views,
+scheduling, scaling, red flags, breakups, and launch. Three recurring agents
+(FRONTEND, BACKEND, QA / CHAOS) work concurrently on the same turn clock, with
+12–16 second replays. All tools and code snippets are fictional display data.
+The original `ship-it` example remains available.
+
+This adds optional fields to the shared session contract (schemaVersion remains
+1; existing sessions still validate). Deploy the updated validator together with
+new content: older strict validators will reject the new fields. No game phase,
+scoring, vision, or HTTP response shape changes are required.
+
+- `session.agents`: ordered roster of `{ id, name, role }` (1–10 entries when
+  supplied; this session uses exactly three).
+- `event.agentId`: routes any existing event type to one declared agent. Untagged
+  events remain in the shared transcript, such as the final turn summary.
+- `event.activity`: optional `idle | analyzing | writing | testing | error |
+  fixing | done`; requires an agent ID.
+- `event.progress`: optional integer 0–100; requires an agent ID. This is scripted
+  visual progress, not a score or a timer. Progress may decrease during a setback.
+
+Tool calls/results must have the same agent ID. Every turn still uses one ordered
+`agent.events` array and one `durationMs`; three windows do not create three shower
+intervals. The validator checks roster uniqueness, references, status/progress
+shape, tool ownership, and all existing timing rules. Regenerate the editor schema
+with `npm run schema:generate` after contract changes.
+
+`getAgentWindows` from `@vibecodemaxxing/game-engine` is a pure replay projection:
+
+```ts
+const turnId = state.phase === "typing" || state.phase === "agent"
+  ? state.turnId
+  : state.phase === "finished" ? session.turns.at(-1)!.id : session.turns[0].id;
+const windows = getAgentWindows(session, state.transcript, turnId);
+// Render each window's name, role, activity, progress, events, tools, and files.
+```
+
+Pass only the engine's already-visible transcript, never the full scripted events.
+The helper creates no timers and cannot reveal future content. Activity, progress,
+logs, and tools start fresh for the selected turn; each agent's mock files persist
+across revealed turns. Keep the final turn ID when finished to retain the last
+window state. Sessions without a roster project into one legacy coding window.
+
+Backend/content handoff is ready; the UI owner must render the windows and the
+game-state owner must implement the existing `createGame` scheduler and session
+HTTP routes. Those scaffold stubs are not implemented by this content feature.
+
 ## Vision IO: camera → engine
 
 Canonical interface: [vision.ts](packages/contracts/src/vision.ts). Browser-only implementation in `packages/vision`; UI supplies a mounted `<video muted playsInline>` and an optional overlay canvas. Vision owns camera permission, stream acquisition/attachment, model initialization, inference, and cleanup. Never request a camera at module import time.

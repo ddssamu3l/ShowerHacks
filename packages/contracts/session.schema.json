@@ -26,6 +26,34 @@
       "type": "string",
       "minLength": 1
     },
+    "agents": {
+      "minItems": 1,
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role"
+        ],
+        "additionalProperties": false
+      }
+    },
     "turns": {
       "minItems": 1,
       "maxItems": 20,
@@ -68,6 +96,27 @@
                           "minimum": 0,
                           "maximum": 9007199254740991
                         },
+                        "agentId": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        },
+                        "activity": {
+                          "type": "string",
+                          "enum": [
+                            "idle",
+                            "analyzing",
+                            "writing",
+                            "testing",
+                            "error",
+                            "fixing",
+                            "done"
+                          ]
+                        },
+                        "progress": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
                         "type": {
                           "type": "string",
                           "const": "assistant_message"
@@ -96,6 +145,27 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
+                        },
+                        "agentId": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        },
+                        "activity": {
+                          "type": "string",
+                          "enum": [
+                            "idle",
+                            "analyzing",
+                            "writing",
+                            "testing",
+                            "error",
+                            "fixing",
+                            "done"
+                          ]
+                        },
+                        "progress": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
                         },
                         "type": {
                           "type": "string",
@@ -129,6 +199,27 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
+                        },
+                        "agentId": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        },
+                        "activity": {
+                          "type": "string",
+                          "enum": [
+                            "idle",
+                            "analyzing",
+                            "writing",
+                            "testing",
+                            "error",
+                            "fixing",
+                            "done"
+                          ]
+                        },
+                        "progress": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
                         },
                         "type": {
                           "type": "string",
@@ -170,6 +261,27 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
+                        },
+                        "agentId": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                        },
+                        "activity": {
+                          "type": "string",
+                          "enum": [
+                            "idle",
+                            "analyzing",
+                            "writing",
+                            "testing",
+                            "error",
+                            "fixing",
+                            "done"
+                          ]
+                        },
+                        "progress": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
                         },
                         "type": {
                           "type": "string",
