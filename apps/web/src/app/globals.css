@@ -34,7 +34,7 @@
   --color-signal: var(--signal);
   --color-success: var(--success);
   --color-water: var(--water);
-  --color-prompt: #e4e4e7;
+  --color-prompt: #b8b8bf;
   --color-heat: #ff7a3d;
   --color-miss: #ff5577;
 
@@ -197,4 +197,14 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Reserve a separate footer for developer controls, outside the game surface. */
+body.development-tools {
+  --dev-tools-height: 64px;
+  padding-bottom: var(--dev-tools-height);
+}
+.development-tools .development-feedback {
+  bottom: 12px !important;
+  right: 16px !important;
 }

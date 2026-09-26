@@ -18,9 +18,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={cn("dark", inter.variable, monaSans.variable, geistMono.variable)}>
-      <body>
+      <body className={process.env.NODE_ENV === "development" ? "development-tools" : undefined}>
         <Providers>{children}</Providers>
-        {process.env.NODE_ENV === "development" && <Agentation />}
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex h-16 items-center justify-center border-t border-border bg-background text-xs text-muted-foreground">
+              Development tools
+            </div>
+            <Agentation className="development-feedback" />
+          </>
+        )}
       </body>
     </html>
   );

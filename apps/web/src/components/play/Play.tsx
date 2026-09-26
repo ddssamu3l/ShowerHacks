@@ -233,7 +233,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   return (
     <div
       className={cn(
-        "grid min-h-svh grid-cols-1 grid-rows-[auto_minmax(360px,1fr)_auto] gap-2.5 p-3 transition-[grid-template-columns,column-gap] duration-[420ms] ease-[var(--ease-out)] motion-reduce:transition-none lg:h-svh lg:grid-rows-[auto_minmax(320px,1fr)_auto]",
+        "grid min-h-[calc(100svh-var(--dev-tools-height,0px))] grid-cols-1 grid-rows-[auto_minmax(360px,1fr)_auto] gap-2.5 p-3 transition-[grid-template-columns,column-gap] duration-[420ms] ease-[var(--ease-out)] motion-reduce:transition-none lg:h-[calc(100svh-var(--dev-tools-height,0px))] lg:grid-rows-[auto_minmax(320px,1fr)_auto]",
         showering ? "lg:grid-cols-[minmax(0,1fr)_0px] lg:gap-x-0" : "lg:grid-cols-[minmax(0,1fr)_300px]",
       )}
     >
