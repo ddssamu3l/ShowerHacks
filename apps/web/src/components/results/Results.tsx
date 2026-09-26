@@ -1,5 +1,6 @@
 "use client";
 
+import { scoreTyping } from "@vibecodemaxxing/game-engine";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { GameResult, LeaderboardEntry } from "@vibecodemaxxing/contracts";
@@ -15,12 +16,14 @@ import { motion } from "motion/react";
 import { AnimatedNumber } from "../fx/AnimatedNumber";
 import { Confetti } from "../fx/Confetti";
 
+const sampleTyping = (target: string, submitted: string, durationMs: number) => scoreTyping({ target, submitted, durationMs });
+
 const sampleResult: GameResult = {
   runId: "00000000-0000-4000-8000-000000000000",
   nickname: "sample_run",
   sessionId: "ship-it",
   sessionVersion: 1,
-  scoringVersion: "v1",
+  scoringVersion: "v2",
   inputMode: "camera",
   completedAt: "2026-09-26T18:00:00.000Z",
   typingScore: 71.4,
@@ -29,17 +32,17 @@ const sampleResult: GameResult = {
   turns: [
     {
       turnId: "add-button",
-      typing: { submittedText: "Add a button that says Ship it.", durationMs: 7200, accuracy: 1, speed: 0.86, score: 86 },
+      typing: sampleTyping("Add a button that says Ship it.", "Add a button that says Ship it.", 7200),
       shower: { durationMs: 12000, averageEfficiency: 0.52, trackingCoverage: 0.94, score: 52 },
     },
     {
       turnId: "fix-button",
-      typing: { submittedText: "The button says Sink it. Change it to Ship it and stop instaling plumbing.", durationMs: 18400, accuracy: 0.97, speed: 0.81, score: 76.2 },
+      typing: sampleTyping("The button says Sink it. Change it to Ship it and stop installing plumbing.", "The button says Sink it. Change it to Ship it and stop instaling plumbing.", 18400),
       shower: { durationMs: 16000, averageEfficiency: 0.66, trackingCoverage: 0.98, score: 66 },
     },
     {
       turnId: "stop-ocean",
-      typing: { submittedText: "DO NOT REFACTOR THE OCEAN. JUST MAKE THE BUTTON SAY SHIP IT.", durationMs: 15900, accuracy: 0.92, speed: 0.78, score: 52 },
+      typing: sampleTyping("DO NOT REFACTOR THE OCEAN. JUST MAKE THE BUTTON SAY SHIP IT.", "DO NOT REFACTOR THE OCEAN. JUST MAKE THE BUTTON SAY SHIP IT.", 15900),
       shower: { durationMs: 10000, averageEfficiency: 0.566, trackingCoverage: 0.9, score: 56.6 },
     },
   ],

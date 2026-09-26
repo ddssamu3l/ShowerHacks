@@ -13,6 +13,7 @@ npm ci
 npm run dev                 # http://localhost:3000
 npm run validate:sessions   # validate every content/sessions/*.json
 npm run typecheck           # shared packages, scripts, and web app
+npm test                    # unit tests (vitest) for packages/
 npm run build               # session validation + production Next.js build
 ```
 
@@ -114,6 +115,17 @@ function beginActivityWindow(targetId: string | null) {
 ```
 
 Reference implementation: `scrub-activity.ts` consumes the shared frame, `scrub-motion.ts` measures motion relative to each body region, and `challenge.ts` owns three-second scheduling/combos using the shared scorer. Motion uses both hands independently and takes the stronger qualifying scrub, capped at 1. Hair/face placements both count toward the Head prompt. `TrackingFrameBuilder.process(...)` accepts raw pose/hand landmarks for tests or alternate camera backends; `drawTrackingOverlay(...)` is optional rendering. Keep mock runs out of the real leaderboard using `TrackingFrame.inputMode`.
+
+## Fog Wipe prototype (activity 02)
+
+```sh
+npm run vision:dev         # same assets as Scrub Fighter
+# Open http://localhost:3000/fog
+```
+
+A second activity for the agent phase: the camera preview fogs over like a bathroom mirror and the player wipes it clear with a hand. Pick a round length (stands in for the agent's turn duration), press start, wipe. At the deadline the fog freezes and the turn score is the percentage cleared, 0..100, the same scale as the shower score. **Try the simulated hand** runs a synthetic sweep with no camera.
+
+Engine side is pure and tested: `createFog`, `applyWipe`, `advanceFog`, `freezeFog`, `scoreFog` in `packages/game-engine/src/fog.ts`. The page feeds it wrist/index landmarks from the existing Pose tracker through `apps/web/src/app/fog/hand-points.ts`; no new vision contract is needed. Design, tuning and the proposed contract changes for wiring it into the main game are in [docs/fog-wipe-mode.md](docs/fog-wipe-mode.md).
 
 ## Four owners, four workstreams
 
@@ -240,21 +252,79 @@ Aim for 10–20 samples/second. Emit zero efficiency with `tracking: false` when
 
 The UI forwards every sample to `game.ingestVision(sample)`. The engine ignores samples outside `agent`, samples captured outside the current agent interval, future timestamps, nonfinite/out-of-range numbers, out-of-order/duplicate timestamps, and samples already over 250 ms old on arrival. Reset sample history on each agent start; a prior typing phase/turn never contributes.
 
-## Scoring v1: owned by the engine
+## Scoring v2: how points are earned
 
-Defaults live in [constants.ts](packages/contracts/src/constants.ts). Results include `scoringVersion: "v1"`; bump it if these rules change. Keep component values unrounded until computing the final integer score.
+The engine is the only thing that computes points. Constants live in [constants.ts](packages/contracts/src/constants.ts), the typing scorer in [typing.ts](packages/game-engine/src/typing.ts). Results carry `scoringVersion: "v2"`; bump it whenever these rules change so old leaderboard entries don't mix with new ones. Keep every component unrounded until the final integer total.
 
-**Typing per turn:** compare submitted and target strings exactly, including case, spaces, and punctuation; do not trim or normalize them. Count Unicode code points (`Array.from(text)`) and compute Levenshtein edit distance `d` over those code points. Let `L` be target length, `S` submitted length, and `t` seconds since entering `typing`, including reaction time.
+A run is a sequence of turns. Each turn produces two numbers on a 0..100 scale, **typing** and **shower**, and the run total is the average of both across all turns, scaled to a maximum of 10,000.
 
 ```text
-accuracy = max(0, 1 - d / max(L, S))
-speed    = min(1, L / (5 * max(t, 0.25)))
-typing   = 100 * accuracy² * speed
+turn 1: type prompt → agent runs, you scrub → typing₁, shower₁
+turn 2: type prompt → agent runs, you scrub → typing₂, shower₂
+...
+total = round(100 * (0.5 * mean(typing) + 0.5 * mean(shower)))
 ```
 
-At five target characters/second with perfect accuracy, typing earns 100. A wrong prompt can progress the story but loses accuracy points. The UI disables paste/drop into the prompt input for the demo and ignores Enter during IME composition; this is an honor-system local game.
+### Typing: the clock starts when the prompt appears
 
-**Showering per turn:** integrate efficiency over the **entire** scheduled agent duration, then divide by that duration. For each accepted sample, its effective value is `efficiency` when `tracking && confidence >= 0.5`, otherwise zero. Hold that value from its capture timestamp until the next accepted sample, its timestamp + 250 ms, or the agent deadline, whichever comes first. All uncovered time, including before the first sample and camera dropouts, contributes zero. Use time weighting, not an arithmetic mean of samples. A low-confidence/no-tracking sample immediately ends the previous held reading.
+Scored once, the moment the player presses Enter. The inputs are the target prompt, the submitted text, the elapsed time since the `typing` phase began (reaction time included), and an optional keystroke log.
+
+Comparison is exact. Case, spaces and punctuation all count, nothing is trimmed or normalized. Characters are Unicode code points (`Array.from(text)`). `d` is the Levenshtein edit distance between target and submitted text, `L` and `S` are their lengths, and `t` is elapsed milliseconds.
+
+**Step 1, speed: 300 points that melt every second.** The player starts with all 300 the instant the field appears and loses a fixed slice per second until the time limit, where speed is zero. The limit scales with prompt length so a short prompt and a long prompt are equally fair: par time is what a 40 WPM typist needs for that prompt, and the limit is three times par.
+
+```text
+parMs        = L / 5 / 40 * 60000
+limitMs      = parMs * 3
+speed        = clamp(1 - t / limitMs, 0, 1)
+speedPoints  = 300 * speed
+```
+
+**Step 2, accuracy: 200 points, squared.** Accuracy is 1 minus edit distance over the longer of the two strings, so both typos and extra junk cost the same. It is squared before scaling so a single typo in a short prompt is visible instead of rounding away.
+
+```text
+accuracy       = clamp(1 - d / max(L, S), 0, 1)
+accuracyPoints = 200 * accuracy²
+```
+
+**Step 3, penalties: subtracted on top.** Sloppiness costs points beyond accuracy. The pause and correction counts come from the keystroke log; without one they are zero and the game still works.
+
+| Penalty | Points | Detected how |
+| --- | --- | --- |
+| Typo | 5 each | `d`, the edit distance |
+| Long pause | 15 each | gap over 2000 ms between two keystrokes |
+| Correction | 3 each | one Backspace press |
+| Cap | 150 total | |
+
+```text
+penaltyPoints = min(150, 5 * d + 15 * longPauses + 3 * corrections)
+```
+
+**Step 4, the turn score.** Points out of 500, floored at zero, rescaled to 0..100.
+
+```text
+typing = max(0, speedPoints + accuracyPoints - penaltyPoints) / 500 * 100
+```
+
+Worked examples on the 38-character prompt "Refactor the auth module and add tests" (par 11.4 s, limit 34.2 s, about 8.8 speed points lost per second):
+
+| What the player did | speed | accuracy | penalty | typing |
+| --- | --- | --- | --- | --- |
+| Perfect, instant | 300 | 200 | 0 | 100 |
+| Perfect in 10 s | 212 | 200 | 0 | 82 |
+| Two typos in 10 s | 212 | 180 | 10 | 76 |
+| Perfect in 40 s | 0 | 200 | 0 | 40 |
+| Two typos, one 3 s pause, one Backspace, 10 s | 212 | 180 | 28 | 73 |
+
+Typos hurt twice on purpose: through squared accuracy and through the flat penalty. A wrong prompt still advances the story. `scoreTyping` returns every component plus human-readable `notes` ("2 typos", "1 long pause", "Over the 34.2s limit") for the result screen. `diffChars` and `liveAccuracy` are exported for live highlighting in the input, `timeLimitMs` for a countdown bar.
+
+The UI passes the keystroke log through `submitPrompt(text, keystrokes)`. The UI disables paste/drop into the prompt input for the demo and ignores Enter during IME composition; this is an honor-system local game. Run `npm test` for the scorer's tests.
+
+### Shower: time-weighted scrubbing while the agent works
+
+Scored at the end of each agent turn, over the **entire** scheduled agent duration. The vision module emits samples of scrub efficiency (0..1) with a confidence and a tracking flag; the engine turns them into a time average.
+
+For each accepted sample, its effective value is `efficiency` when `tracking && confidence >= 0.5`, otherwise zero. Hold that value from its capture timestamp until the next accepted sample, its timestamp + 250 ms, or the agent deadline, whichever comes first. All uncovered time, including before the first sample and camera dropouts, contributes zero. Use time weighting, not an arithmetic mean of samples. A low-confidence/no-tracking sample immediately ends the previous held reading.
 
 ```text
 averageEfficiency = sum(effectiveEfficiency * coveredMilliseconds) / durationMs
@@ -264,7 +334,9 @@ trackingCoverage  = qualifyingCoveredMilliseconds / durationMs
 
 Late samples arriving after the turn has ended cannot change its result. Faster sample delivery must not create extra points. An efficiency of 0.8 continuously maintained earns 80 for either a 10-second or a 30-second turn; the duration itself is not a bonus or penalty. `liveEfficiency` uses the same gating/250 ms expiry for UI feedback.
 
-**Run total:** every completed turn has equal weight, regardless of prompt length or agent duration.
+### Run total
+
+Every completed turn has equal weight, regardless of prompt length or agent duration.
 
 ```text
 typingScore = mean(turn.typing.score)       # 0..100
@@ -272,7 +344,15 @@ showerScore = mean(turn.shower.score)       # 0..100
 totalScore  = round(100 * (0.5 * typingScore + 0.5 * showerScore))
 ```
 
-Maximum score: **10,000**. The live `state.score` summarizes only completed turns (zero before the first completion); the active turn separately exposes `typingResult` and `liveEfficiency` during `agent`.
+A full run on the sample session `ship-it` (three turns), computed with the real scorer:
+
+| Turn | Prompt length | Typed in | Mistakes | typing | shower |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 31 | 6 s | none | 87.1 | 90 |
+| 2 | 75 | 20 s | 1 typo, 1 pause, 1 Backspace | 76.6 | 60 |
+| 3 | 60 | 40 s | none | 55.6 | 70 |
+
+typingScore 73.1, showerScore 73.3, **totalScore 7322** out of 10,000. The live `state.score` summarizes only completed turns (zero before the first completion); the active turn separately exposes `typingResult` and `liveEfficiency` during `agent`.
 
 ## Engine IO: engine → UI
 
@@ -307,12 +387,12 @@ The **game-state owner** implements these Next.js route handlers and Node-only f
 | --- | --- | --- |
 | `GET /api/sessions` | None | `{ sessions: SessionSummary[] }`, sorted by ID |
 | `GET /api/sessions/:id` | Session ID | `{ session: Session }` |
-| `GET /api/leaderboard?sessionId=ship-it&sessionVersion=1&scoringVersion=v1` | All three board keys required | `{ entries: LeaderboardEntry[] }`, top 10 |
+| `GET /api/leaderboard?sessionId=ship-it&sessionVersion=1&scoringVersion=v2` | All three board keys required | `{ entries: LeaderboardEntry[] }`, top 10 |
 | `POST /api/leaderboard` | JSON `{ result: GameResult }` | `{ entry: LeaderboardEntry, rank: number, entries: LeaderboardEntry[] }`, HTTP 201 on first save, 200 on identical retry |
 
 `SessionSummary` contains `id`, `sessionVersion`, `title`, `description`, and `turnCount`. `LeaderboardEntry` contains `runId`, `nickname`, the three board keys, `typingScore`, `showerScore`, `totalScore`, and server-assigned ISO `completedAt`. Only finished camera-mode runs can be saved; reject mock runs. Error bodies use `{ error: { code, message } }`: 400 for invalid input, 404 for unknown session/version, 409 for a reused run ID with different contents, and 500 for load/write failure. Return a generic error message rather than filesystem details.
 
-Validate POST bodies at runtime: require a valid nickname/run UUID, known session/version and scoring version, `inputMode: "camera"`, one result for every session turn in order, matching agent durations, and finite values within the documented ranges. Recompute typing scores from submitted text/durations and the final aggregate from turn data; do not trust posted totals. The camera estimate itself is client-reported, appropriate for a local hackathon leaderboard. A score/result must be complete; do not save intermediate snapshots.
+Validate POST bodies at runtime: require a valid nickname/run UUID, known session/version and scoring version, `inputMode: "camera"`, one result for every session turn in order, matching agent durations, and finite values within the documented ranges. Recompute typing scores from submitted text, durations, and the posted `longPauses`/`corrections` counts, and the final aggregate from turn data; do not trust posted totals. The camera estimate itself is client-reported, appropriate for a local hackathon leaderboard. A score/result must be complete; do not save intermediate snapshots.
 
 Store all runs in **`<repo>/data/leaderboard.json`**, with this versioned format; create it on the first save:
 

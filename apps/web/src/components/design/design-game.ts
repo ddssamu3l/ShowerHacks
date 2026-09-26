@@ -10,30 +10,14 @@ import {
   type TypingResult,
   type VisionSample,
 } from "@vibecodemaxxing/contracts";
+import { scoreTyping as engineScoreTyping } from "@vibecodemaxxing/game-engine";
 
 // Design stand-in for `createGame` from @vibecodemaxxing/game-engine. It follows the README's
 // timing and scoring rules closely enough to lay out every phase; swap it out when the engine lands.
 
-function editDistance(a: string[], b: string[]) {
-  let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
-  for (let i = 1; i <= a.length; i++) {
-    const current = [i];
-    for (let j = 1; j <= b.length; j++) {
-      current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-    }
-    previous = current;
-  }
-  return previous[b.length];
-}
-
+// Typing is scored by the real engine (scoring v2); only the game loop below is a stand-in.
 export function scoreTyping(target: string, submitted: string, durationMs: number): TypingResult {
-  const expected = Array.from(target);
-  const actual = Array.from(submitted);
-  const distance = editDistance(expected, actual);
-  const accuracy = Math.max(0, 1 - distance / Math.max(expected.length, actual.length, 1));
-  const seconds = Math.max(durationMs / 1000, SCORING.minimumTypingSeconds);
-  const speed = Math.min(1, expected.length / (SCORING.targetCharactersPerSecond * seconds));
-  return { submittedText: submitted, durationMs, accuracy, speed, score: 100 * accuracy ** 2 * speed };
+  return engineScoreTyping({ target, submitted, durationMs });
 }
 
 function sampleValue(sample: VisionSample) {

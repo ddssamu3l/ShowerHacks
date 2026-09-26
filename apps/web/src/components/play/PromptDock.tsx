@@ -1,9 +1,10 @@
 "use client";
 
+import { parTimeMs } from "@vibecodemaxxing/game-engine";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { GameState } from "@vibecodemaxxing/contracts";
-import { SCORING } from "@vibecodemaxxing/contracts";
+import { TYPING_SCORING } from "@vibecodemaxxing/contracts";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -92,7 +93,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
 
   const streak = streakOf(targetWords, typedWords, complete);
   const seconds = Math.max(0, (now - state.typingStartedAtMs) / 1000);
-  const onPace = length / SCORING.targetCharactersPerSecond;
+  const onPace = parTimeMs(length, TYPING_SCORING.parWpm) / 1000;
   const heat = seconds <= onPace ? "text-white" : seconds <= onPace * 1.6 ? "text-heat" : "text-miss";
   const activeWord = typedWords.length - 1;
 
