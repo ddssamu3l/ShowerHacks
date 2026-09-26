@@ -11,33 +11,57 @@ import {
   type MutableRefObject,
   type ReactNode,
 } from "react";
-import type { PoseLandmarker } from "@mediapipe/tasks-vision";
-
-const MEDIAPIPE_VERSION = "1.0.1";
-const WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
-const MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+import {
+  createTracking,
+  PlacementScrubDetector,
+  type TrackingFrame,
+  type TrackingPoint,
+  type VisionStatus,
+} from "@vibecodemaxxing/vision";
+import type { BodyPart } from "@vibecodemaxxing/contracts";
 
 const NOSE = 0;
 const LEFT_SHOULDER = 11;
 const RIGHT_SHOULDER = 12;
-const LEFT_WRIST = 15;
-const RIGHT_WRIST = 16;
 
 export type CameraStatus = "idle" | "starting" | "loading-model" | "ready" | "blocked" | "missing" | "model-failed";
 
-export interface PosePoint {
+export interface Point {
   x: number;
   y: number;
+}
+
+export interface PosePoint extends Point {
   visible: boolean;
 }
 
+export interface HandPoint extends Point {
+  zone: BodyPart | null;
+  /** Scored scrub strength from the vision package, 0..1. */
+  intensity: number;
+  /** Raw palm speed in image heights per second, for effects only. */
+  speed: number;
+  tips: Point[];
+}
+
+export interface BodyRegion {
+  part: BodyPart;
+  center: Point;
+  outline: Point[];
+}
+
+/** Mirrored to match the selfie preview: x = 0 is the left edge of the screen. */
 export interface PoseFrame {
   capturedAtMs: number;
   points: PosePoint[] | null;
   tracking: boolean;
+  confidence: number;
+  bodyX: number | null;
   handsVisible: boolean;
+  hands: HandPoint[];
   scrub: number;
+  zone: BodyPart | null;
+  regions: BodyRegion[];
 }
 
 interface CameraContextValue {
@@ -48,12 +72,76 @@ interface CameraContextValue {
   stop: () => void;
 }
 
-const emptyFrame: PoseFrame = { capturedAtMs: 0, points: null, tracking: false, handsVisible: false, scrub: 0 };
+const emptyFrame: PoseFrame = {
+  capturedAtMs: 0,
+  points: null,
+  tracking: false,
+  confidence: 0,
+  bodyX: null,
+  handsVisible: false,
+  hands: [],
+  scrub: 0,
+  zone: null,
+  regions: [],
+};
+
+const errorStatus: Record<Extract<VisionStatus, { state: "error" }>["code"], CameraStatus> = {
+  permission_denied: "blocked",
+  camera_unavailable: "missing",
+  model_failed: "model-failed",
+};
 
 const CameraContext = createContext<CameraContextValue | null>(null);
 
-function distance(a: PosePoint, b: PosePoint) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
+const mirror = (point: Point): Point => ({ x: 1 - point.x, y: point.y });
+
+function toPoseFrame(frame: TrackingFrame, detector: PlacementScrubDetector, previousScrub: number): PoseFrame {
+  const motion = detector.process(frame);
+  const points = frame.body.landmarks.map((point) =>
+    point ? { ...mirror(point), visible: true } : { x: 0, y: 0, visible: false },
+  );
+
+  const hands: HandPoint[] = [];
+  for (const side of ["left", "right"] as const) {
+    const hand = frame.hands[side];
+    if (!hand.tracked || !hand.palm) continue;
+    const scrub = motion.hands.find((item) => item.side === side);
+    hands.push({
+      ...mirror(hand.palm),
+      zone: scrub?.zone ?? null,
+      intensity: scrub?.intensity ?? 0,
+      speed: hand.palm.motion?.speed ?? 0,
+      tips: Object.values(hand.fingers).flatMap((finger) => (finger.tip ? [mirror(finger.tip)] : [])),
+    });
+  }
+
+  const best = hands.reduce<HandPoint | null>(
+    (top, hand) => (hand.zone && hand.intensity > (top?.intensity ?? 0) ? hand : top),
+    null,
+  );
+  const anchors = [NOSE, LEFT_SHOULDER, RIGHT_SHOULDER]
+    .map((index) => frame.body.landmarks[index])
+    .filter((point): point is TrackingPoint => point !== null);
+
+  return {
+    capturedAtMs: frame.capturedAtMs,
+    points,
+    tracking: frame.body.tracked,
+    confidence: frame.body.confidence,
+    bodyX:
+      frame.body.tracked && anchors.length
+        ? 1 - anchors.reduce((sum, point) => sum + point.x, 0) / anchors.length
+        : null,
+    handsVisible: hands.length > 0,
+    hands,
+    scrub: previousScrub + ((best?.intensity ?? 0) - previousScrub) * 0.45,
+    zone: best?.zone ?? null,
+    regions: frame.body.regions.map((region) => ({
+      part: region.part,
+      center: mirror(region.center),
+      outline: region.outline.map(mirror),
+    })),
+  };
 }
 
 export function CameraProvider({ children }: { children: ReactNode }) {
@@ -77,103 +165,39 @@ export function CameraProvider({ children }: { children: ReactNode }) {
   const request = useCallback(() => {
     if (["starting", "loading-model", "ready"].includes(statusRef.current)) return;
     const session = ++sessionRef.current;
+    const current = () => session === sessionRef.current;
     setStatus("starting");
 
-    void (async () => {
-      let media: MediaStream;
-      try {
-        media = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-          audio: false,
-        });
-      } catch (error) {
-        if (session !== sessionRef.current) return;
-        const name = error instanceof DOMException ? error.name : "";
-        setStatus(name === "NotFoundError" || name === "OverconstrainedError" ? "missing" : "blocked");
-        return;
-      }
-      if (session !== sessionRef.current) {
-        media.getTracks().forEach((track) => track.stop());
-        return;
-      }
+    const video = document.createElement("video");
+    const onPlaying = () => {
+      if (!current()) return;
+      setStream(video.srcObject as MediaStream);
+      setStatus((value) => (value === "starting" ? "loading-model" : value));
+    };
+    video.addEventListener("playing", onPlaying, { once: true });
 
-      const video = document.createElement("video");
-      video.muted = true;
-      video.playsInline = true;
-      video.srcObject = media;
-      void video.play().catch(() => {});
-
-      let landmarker: PoseLandmarker | null = null;
-      let raf = 0;
-      teardownRef.current = () => {
-        cancelAnimationFrame(raf);
-        landmarker?.close();
-        video.pause();
-        video.srcObject = null;
-        media.getTracks().forEach((track) => track.stop());
-      };
-      setStream(media);
-      setStatus("loading-model");
-
-      try {
-        const vision = await import("@mediapipe/tasks-vision");
-        const fileset = await vision.FilesetResolver.forVisionTasks(WASM_URL);
-        landmarker = await vision.PoseLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
-          runningMode: "VIDEO",
-          numPoses: 1,
-        });
-      } catch {
-        if (session === sessionRef.current) setStatus("model-failed");
-        return;
-      }
-      if (session !== sessionRef.current) {
-        landmarker.close();
-        return;
-      }
-      setStatus("ready");
-
-      let lastVideoTime = -1;
-      let lastWrists: { left: PosePoint; right: PosePoint; at: number } | null = null;
-      let scrub = 0;
-
-      const loop = () => {
-        raf = requestAnimationFrame(loop);
-        if (!landmarker || video.readyState < 2 || video.currentTime === lastVideoTime) return;
-        lastVideoTime = video.currentTime;
-        const capturedAtMs = performance.now();
-        const result = landmarker.detectForVideo(video, capturedAtMs);
-        const raw = result.landmarks[0];
-
-        if (!raw) {
-          scrub *= 0.8;
-          lastWrists = null;
-          poseRef.current = { capturedAtMs, points: null, tracking: false, handsVisible: false, scrub };
-          return;
+    const detector = new PlacementScrubDetector();
+    const tracker = createTracking({
+      video,
+      onStatus: (next) => {
+        if (!current()) return;
+        if (next.state === "ready") setStatus("ready");
+        if (next.state === "error") {
+          setStream(null);
+          setStatus(errorStatus[next.code]);
         }
+      },
+      onFrame: (frame) => {
+        if (!current()) return;
+        poseRef.current = toPoseFrame(frame, detector, poseRef.current.scrub);
+      },
+    });
 
-        const points = raw.map((point) => ({ x: 1 - point.x, y: point.y, visible: (point.visibility ?? 0) > 0.5 }));
-        const tracking = points[NOSE].visible && points[LEFT_SHOULDER].visible && points[RIGHT_SHOULDER].visible;
-        const left = points[LEFT_WRIST];
-        const right = points[RIGHT_WRIST];
-        const handsVisible = left.visible || right.visible;
-
-        let target = 0;
-        const shoulderWidth = Math.max(distance(points[LEFT_SHOULDER], points[RIGHT_SHOULDER]), 0.05);
-        if (lastWrists && handsVisible) {
-          const dt = Math.max((capturedAtMs - lastWrists.at) / 1000, 1 / 120);
-          const moves: number[] = [];
-          if (left.visible) moves.push(distance(left, lastWrists.left));
-          if (right.visible) moves.push(distance(right, lastWrists.right));
-          const speed = moves.reduce((sum, move) => sum + move, 0) / moves.length / dt / shoulderWidth;
-          target = Math.min(1, speed / 2.5);
-        }
-        scrub += (target - scrub) * 0.2;
-        lastWrists = { left, right, at: capturedAtMs };
-        poseRef.current = { capturedAtMs, points, tracking, handsVisible, scrub };
-      };
-      loop();
-    })();
+    teardownRef.current = () => {
+      video.removeEventListener("playing", onPlaying);
+      tracker.stop();
+    };
+    tracker.start().catch(() => {});
   }, []);
 
   useEffect(() => () => teardownRef.current(), []);
@@ -200,4 +224,4 @@ export function usePoseSnapshot(hz = 10) {
   return snapshot;
 }
 
-export const poseIndex = { NOSE, LEFT_SHOULDER, RIGHT_SHOULDER, LEFT_WRIST, RIGHT_WRIST };
+export const poseIndex = { NOSE, LEFT_SHOULDER, RIGHT_SHOULDER };

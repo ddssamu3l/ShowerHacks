@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { GameResult, LeaderboardEntry } from "@vibecodemaxxing/contracts";
+import { SCORING_VERSION, type GameResult, type LeaderboardEntry } from "@vibecodemaxxing/contracts";
+import { scoreTyping } from "@vibecodemaxxing/game-engine";
 import { useCamera } from "../camera/CameraProvider";
 import { findSession } from "../design/session";
 import { readResult } from "../design/run-storage";
@@ -15,12 +16,16 @@ import { motion } from "motion/react";
 import { AnimatedNumber } from "../fx/AnimatedNumber";
 import { Confetti } from "../fx/Confetti";
 
+const shipIt = findSession("ship-it");
+const sampleTyping = (index: number, submitted: string, durationMs: number) =>
+  scoreTyping({ target: shipIt.turns[index].prompt, submitted, durationMs });
+
 const sampleResult: GameResult = {
   runId: "00000000-0000-4000-8000-000000000000",
   nickname: "sample_run",
   sessionId: "ship-it",
   sessionVersion: 1,
-  scoringVersion: "v1",
+  scoringVersion: SCORING_VERSION,
   inputMode: "camera",
   completedAt: "2026-09-26T18:00:00.000Z",
   typingScore: 71.4,
@@ -29,17 +34,17 @@ const sampleResult: GameResult = {
   turns: [
     {
       turnId: "add-button",
-      typing: { submittedText: "Add a button that says Ship it.", durationMs: 7200, accuracy: 1, speed: 0.86, score: 86 },
+      typing: sampleTyping(0, "Add a button that says Ship it.", 7200),
       shower: { durationMs: 12000, averageEfficiency: 0.52, trackingCoverage: 0.94, score: 52 },
     },
     {
       turnId: "fix-button",
-      typing: { submittedText: "The button says Sink it. Change it to Ship it and stop instaling plumbing.", durationMs: 18400, accuracy: 0.97, speed: 0.81, score: 76.2 },
+      typing: sampleTyping(1, "The button says Sink it. Change it to Ship it and stop instaling plumbing.", 18400),
       shower: { durationMs: 16000, averageEfficiency: 0.66, trackingCoverage: 0.98, score: 66 },
     },
     {
       turnId: "stop-ocean",
-      typing: { submittedText: "DO NOT REFACTOR THE OCEAN. JUST MAKE THE BUTTON SAY SHIP IT.", durationMs: 15900, accuracy: 0.92, speed: 0.78, score: 52 },
+      typing: sampleTyping(2, "DO NOT REFACTOR THE OCEAN. JUST MAKE THE BUTTON SAY SHIP IT.", 15900),
       shower: { durationMs: 10000, averageEfficiency: 0.566, trackingCoverage: 0.9, score: 56.6 },
     },
   ],
@@ -106,7 +111,7 @@ function ResultsScreen({ result, isSample }: { result: GameResult; isSample: boo
   const practice = result.inputMode === "mock";
   const celebrate = !practice && rank > 0 && rank <= 3;
   const parts = [
-    { label: "Typing", value: result.typingScore, text: "text-violet-ink", bar: "bg-spotlight-violet" },
+    { label: "Typing", value: result.typingScore, text: "text-foreground", bar: "bg-foreground" },
     { label: "Shower", value: result.showerScore, text: "text-signal", bar: "bg-signal" },
   ];
 
@@ -115,20 +120,20 @@ function ResultsScreen({ result, isSample }: { result: GameResult; isSample: boo
       <div className="flex flex-col gap-10">
         <section className="flex flex-col gap-4">
           <motion.div
-            className="spotlight relative flex flex-col gap-3 rounded-[30px] p-8 text-white"
+            className="relative flex flex-col gap-3 rounded-[30px] bg-foreground p-8 text-black"
             initial={{ opacity: 0, transform: "translateY(12px) scale(0.98)" }}
             animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
           >
             {celebrate && <Confetti />}
-            <p className="text-[13px] font-medium text-white/80">
+            <p className="text-[13px] font-medium text-black/60">
               {isSample ? "Sample run · play a round to see yours" : session.title}
             </p>
             <p className="font-display text-[clamp(4rem,9vw,6.9rem)] leading-[0.85] font-medium tracking-[-0.05em] tabular-nums">
               <AnimatedNumber value={result.totalScore} mode="count" duration={1.2} />
-              <span className="ml-3 font-sans text-lg tracking-normal text-white/70">/ 10,000</span>
+              <span className="ml-3 font-sans text-lg tracking-normal text-black/50">/ 10,000</span>
             </p>
-            <p className="text-lg leading-[1.3] text-white/90">
+            <p className="text-lg leading-[1.3] text-black/80">
               {practice
                 ? "Practice runs don't go on the leaderboard. Play with your camera to post a score."
                 : rank > 0
@@ -173,11 +178,11 @@ function ResultsScreen({ result, isSample }: { result: GameResult; isSample: boo
                   <div className="grid min-w-0 gap-1">
                     <p className="font-mono text-[13px] leading-[1.4]">{prompt}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(turn.typing.durationMs / 1000).toFixed(1)}s · {Math.round(turn.typing.accuracy * 100)}% accurate ·{" "}
+                      {(turn.typing.durationMs / 1000).toFixed(1)}s · {turn.typing.notes.join(" · ")} ·{" "}
                       {Math.round(turn.shower.trackingCoverage * 100)}% of the shower on camera
                     </p>
                   </div>
-                  <span className="text-right font-mono text-lg text-violet-ink tabular-nums">{Math.round(turn.typing.score)}</span>
+                  <span className="text-right font-mono text-lg tabular-nums">{Math.round(turn.typing.score)}</span>
                   <span className="text-right font-mono text-lg text-signal tabular-nums">
                     {Math.round(turn.shower.score)}
                   </span>

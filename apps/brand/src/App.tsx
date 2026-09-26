@@ -11,7 +11,7 @@ const sections = [
   ["principles", "Principles"],
   ["color", "Color"],
   ["meaning", "What color means"],
-  ["spotlights", "Spotlight cards"],
+  ["fills", "Fills"],
   ["type", "Typography"],
   ["typing", "Typing states"],
   ["components", "Components"],
@@ -46,7 +46,7 @@ export function App() {
         <Principles />
         <Colors />
         <Meaning />
-        <Spotlights />
+        <Fills />
         <Typography />
         <TypingStates />
         <Components />
@@ -65,16 +65,16 @@ export function App() {
 
 function Hero() {
   return (
-    <header className="spotlight relative flex flex-col gap-6 overflow-hidden rounded-[30px] p-8 text-white md:p-12">
-      <Badge className="h-7 bg-black/30 px-3 text-[13px] text-white">Maximum vibes. Questionable code.</Badge>
+    <header className="relative flex flex-col gap-6 overflow-hidden rounded-[30px] bg-foreground p-8 text-black md:p-12">
+      <Badge className="h-7 bg-black px-3 text-[13px] text-white">Maximum vibes. Questionable code.</Badge>
       <h1 className="font-display text-[clamp(3rem,7vw,5.3rem)] leading-[0.95] font-medium tracking-[-0.05em]">
         One look for
         <br />
         the whole team.
       </h1>
-      <p className="max-w-xl text-lg leading-[1.3] text-white/90">
-        Vibecodemaxxing is a dark, poster-loud game UI. It borrows Framer&rsquo;s black canvas and white pills, then
-        gives each moment of the game its own gradient. Use this page to check a color, a type size, or a curve
+      <p className="max-w-xl text-lg leading-[1.3] text-black/70">
+        Vibecodemaxxing is a dark, poster-loud game UI built the way Framer builds its own product: black canvas,
+        white type, white pills and one blue. No gradients. Use this page to check a color, a type size, or a curve
         before you build something new.
       </p>
     </header>
@@ -86,8 +86,8 @@ function Principles() {
     ["Dark only", "The canvas is #090909 on every screen. There is no light mode."],
     ["Lift, don't tint", "Show hierarchy by stepping up a surface: canvas, then card, then muted. Don't fade white text."],
     ["One primary action", "The white pill is the only primary button. Everything else is a charcoal pill or a link."],
-    ["Every color has a job", "Violet means typing. Blue means the agent and the shower. Don't swap them for decoration."],
-    ["Gradients are cards", "Spotlight gradients fill a single card for a single moment. Never a whole section."],
+    ["Every color has a job", "White means typing. Blue means the agent and the shower. Don't use either for decoration."],
+    ["Flat, never gradient", "Fills are solid colors. A card turns white or blue only when it's that card's moment."],
     ["Motion answers the player", "Animate feedback: points, streaks, mistakes, rank. Don't animate for decoration."],
   ];
   return (
@@ -130,10 +130,9 @@ const inks: Swatch[] = [
 
 const signals: Swatch[] = [
   { name: "Signal blue", hex: "#0099ff", token: "text-signal", use: "The agent, the shower score, focus rings." },
-  { name: "Violet ink", hex: "#a594ff", token: "text-violet-ink", use: "The typing score and typing progress on dark." },
+  { name: "Water", hex: "#0a6fd6", token: "bg-water", use: "Solid fill behind white text: the shower card, shower points." },
   { name: "Heat", hex: "#ff7a3d", token: "text-heat", use: "Streaks, a slow timer, third place." },
   { name: "Miss", hex: "#ff5577", token: "text-destructive", use: "Wrong letters, errors, a very slow timer." },
-  { name: "Magenta ink", hex: "#e58af7", token: "text-magenta-ink", use: "Defined but not used yet. Ask first.", unused: true },
   { name: "Success", hex: "#22c55e", token: "text-success", use: "Defined but not used yet. Ask first.", unused: true },
 ];
 
@@ -199,35 +198,35 @@ function Meaning() {
       lead="A run has two halves, and each half has one color. Players learn the mapping in the first ten seconds, so keep it consistent everywhere, including the leaderboard."
     >
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="spotlight-violet on-spotlight bg-spotlight-violet gap-4 rounded-[20px] px-6 py-6 text-white ring-0">
-          <Eyebrow className="text-white/80">Typing · violet</Eyebrow>
+        <Card className="gap-4 rounded-[20px] bg-foreground px-6 py-6 text-black ring-0">
+          <Eyebrow className="text-black/60">Typing · white</Eyebrow>
           <p className="font-display text-5xl font-medium tracking-[-0.05em] tabular-nums">+412</p>
-          <p className="text-[15px] leading-[1.4] text-white/85">
-            The prompt dock, typing points, the current turn pip, and every typing score use violet. On dark, use{" "}
-            <Code onSpotlight>text-violet-ink</Code>.
+          <p className="text-[15px] leading-[1.4] text-black/70">
+            The prompt dock, the countdown, typing points and the typing score are white. It&rsquo;s Framer&rsquo;s
+            inverse surface: <Code>bg-foreground text-black</Code>.
           </p>
         </Card>
-        <Card className="spotlight-water gap-4 rounded-[20px] bg-[#0a6fd6] px-6 py-6 text-white ring-0">
+        <Card className="gap-4 rounded-[20px] bg-water px-6 py-6 text-white ring-0">
           <Eyebrow className="text-white/80">Agent and shower · blue</Eyebrow>
           <p className="font-display text-5xl font-medium tracking-[-0.05em] tabular-nums">+380</p>
           <p className="text-[15px] leading-[1.4] text-white/85">
             &ldquo;Agent is working,&rdquo; the countdown bar, being under the water, and every shower score use blue.
-            On dark, use <Code onSpotlight>text-signal</Code>.
+            Use <Code onSpotlight>bg-water</Code> for fills and <Code onSpotlight>text-signal</Code> for text on dark.
           </p>
         </Card>
       </div>
       <Card className="rounded-[20px]">
         <CardContent className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
           <div className="flex gap-6">
-            <Score label="Typing" value="2,480" className="text-violet-ink" />
+            <Score label="Typing" value="2,480" />
             <Score label="Shower" value="3,115" className="text-signal" />
             <Score label="Total" value="5,595" />
           </div>
           <div className="grid gap-2">
             <p className="text-[13px] text-muted-foreground">The score bar in the play screen, and turn pips: done, typing now, agent now, not yet.</p>
             <div className="flex gap-2">
-              <span className="gradient-fill h-1.5 w-7 rounded-full" />
-              <span className="h-1.5 w-7 rounded-full bg-violet-ink" />
+              <span className="h-1.5 w-7 rounded-full bg-foreground" />
+              <span className="h-1.5 w-7 rounded-full bg-foreground/45" />
               <span className="h-1.5 w-7 rounded-full bg-signal" />
               <span className="h-1.5 w-7 rounded-full bg-accent" />
             </div>
@@ -247,44 +246,55 @@ function Score({ label, value, className }: { label: string; value: string; clas
   );
 }
 
-const spotlights = [
-  { className: "spotlight-violet", name: "Violet", job: "Typing. The prompt dock and typing points in flight." },
-  { className: "spotlight-water", name: "Water", job: "Showering. The status card while you're under the water, and shower points." },
-  { className: "spotlight-cartridge", name: "Cartridge", job: "Your pick. The selected session in the lobby, and second place." },
-  { className: "spotlight-magenta", name: "Magenta", job: "Hype. The 3-2-1 countdown and first place." },
-  { className: "spotlight", name: "Full spotlight", job: "The payoff. Only the final score card on the results screen." },
+const fills = [
+  {
+    name: "Inverse",
+    classes: "bg-foreground text-black",
+    className: "bg-foreground text-black",
+    job: "Typing. The prompt dock, the 3-2-1 countdown, the final score card and first place.",
+    muted: "text-black/60",
+  },
+  {
+    name: "Water",
+    classes: "bg-water text-white",
+    className: "bg-water text-white",
+    job: "Showering. The status card while you're under the water, and shower points in flight.",
+    muted: "text-white/80",
+  },
+  {
+    name: "Selected",
+    classes: "bg-accent ring-2 ring-signal",
+    className: "bg-accent text-foreground ring-2 ring-signal",
+    job: "A choice the player made, like the session in the lobby. Lift the surface and add a blue ring.",
+    muted: "text-muted-foreground",
+  },
+  {
+    name: "Card",
+    classes: "bg-card ring-1 ring-border",
+    className: "bg-card text-foreground ring-1 ring-border",
+    job: "Everything else. Most of the screen should be this.",
+    muted: "text-muted-foreground",
+  },
 ];
 
-function Spotlights() {
+function Fills() {
   return (
     <Section
-      id="spotlights"
-      title="Spotlight cards"
-      lead="These gradients are what make the game look like ours, so keep them rare. Each one is a single card with one job, and no more than two should be on screen at once."
+      id="fills"
+      title="Fills"
+      lead="Framer's product is flat: black, white, one blue. We use no gradients at all. A card only changes fill when it's that card's moment, and there are just four fills."
     >
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {spotlights.map((spotlight) => (
-          <CopyCard key={spotlight.className} value={spotlight.className} className={cn(spotlight.className, "text-white")}>
-            <span className="font-display text-2xl font-medium tracking-[-0.03em]">{spotlight.name}</span>
-            <span className="text-[15px] leading-[1.4] text-white/85">{spotlight.job}</span>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {fills.map((fill) => (
+          <CopyCard key={fill.name} value={fill.classes} className={fill.className}>
+            <span className="font-display text-2xl font-medium tracking-[-0.03em]">{fill.name}</span>
+            <span className={cn("text-[15px] leading-[1.4]", fill.muted)}>{fill.job}</span>
           </CopyCard>
         ))}
-        <CopyCard value="gradient-fill" className="bg-card ring-1 ring-border">
-          <span className="font-display text-2xl font-medium tracking-[-0.03em]">Gradient fill</span>
-          <span className="text-[15px] leading-[1.4] text-muted-foreground">
-            Thin strips only, like completed turn pips. Not a card background.
-          </span>
-          <span className="gradient-fill mt-2 h-1.5 w-full rounded-full" />
-        </CopyCard>
       </div>
       <Note>
-        Text on a spotlight is always white. Step it down with opacity (<Code>text-white/85</Code>,{" "}
-        <Code>/80</Code>, <Code>/70</Code>), and add <Code>on-spotlight</Code> to any card that shows prompt letters.
-      </Note>
-      <Note>
-        On a <Code>Card</Code>, also add the matching base color, like <Code>bg-spotlight-violet</Code> or{" "}
-        <Code>bg-[#0a6fd6]</Code> for water, and <Code>ring-0</Code>. Otherwise the card&rsquo;s own{" "}
-        <Code>bg-card</Code> wins and the gradient fades to black.
+        On white, step text down with black opacity (<Code>text-black/60</Code>). On blue, use white opacity (
+        <Code>text-white/80</Code>). Add <Code>on-inverse</Code> to a white card that shows prompt letters.
       </Note>
     </Section>
   );
@@ -302,9 +312,7 @@ function CopyCard({ value, className, children }: { value: string; className?: s
       )}
     >
       {children}
-      <span className="mt-auto rounded-full bg-black/30 px-3 py-1 font-mono text-xs text-white">
-        {copied ? "Copied" : `.${value}`}
-      </span>
+      <span className="mt-auto w-fit rounded-full bg-black/15 px-3 py-1 font-mono text-xs">{copied ? "Copied" : value}</span>
     </button>
   );
 }
@@ -439,17 +447,17 @@ function TypingStates() {
           <Eyebrow>On canvas</Eyebrow>
           <TypedPrompt prompt={prompt} typed={typed} />
         </Card>
-        <Card className="spotlight-violet on-spotlight bg-spotlight-violet gap-3 rounded-[20px] px-5 py-5 text-white ring-0">
-          <Eyebrow className="text-white/80">On spotlight · add .on-spotlight</Eyebrow>
+        <Card className="on-inverse gap-3 rounded-[20px] bg-foreground px-5 py-5 text-black ring-0">
+          <Eyebrow className="text-black/60">On white · add .on-inverse</Eyebrow>
           <TypedPrompt prompt={prompt} typed={typed} />
         </Card>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          [".char-pending", "Not typed yet. #5c5c5c on canvas, white at 45% on a spotlight."],
-          [".char-right", "Typed correctly. Full white."],
-          [".char-wrong", "Typed wrong. Miss coral with a 2px underline, or pale pink on a spotlight."],
-          [".char[data-caret]", "The next letter. A 2px signal-blue bar, white on a spotlight."],
+          [".char-pending", "Not typed yet. #5c5c5c on canvas, black at 55% on white so it stays readable."],
+          [".char-right", "Typed correctly. Full white, or black on white."],
+          [".char-wrong", "Typed wrong. Miss coral with a 2px underline, or #d61f45 on white."],
+          [".char[data-caret]", "The next letter. A 2px signal-blue bar, or black on white."],
         ].map(([token, use]) => (
           <div key={token} className="grid gap-1 rounded-[20px] bg-card p-4 ring-1 ring-border">
             <span className="font-mono text-xs text-signal">{token}</span>
@@ -508,11 +516,11 @@ function Components() {
           <Badge variant="outline" className="border-signal/50 text-signal">
             You
           </Badge>
-          <span className="rounded-full bg-black/30 px-3 py-1 text-[13px] font-semibold text-heat tabular-nums ring-1 ring-border">
-            ×3 streak
-          </span>
-          <span className="spotlight-violet rounded-full px-3 py-1 text-sm font-semibold text-white tabular-nums">
+          <span className="rounded-full bg-foreground px-3 py-1 text-sm font-semibold text-black tabular-nums">
             +412 typing
+          </span>
+          <span className="rounded-full bg-water px-3 py-1 text-sm font-semibold text-white tabular-nums">
+            +380 shower
           </span>
         </div>
       </Demo>
@@ -529,17 +537,17 @@ function Components() {
             />
             <p className="text-[13px] text-destructive">Keep it to 24 characters.</p>
           </div>
-          <div className="spotlight-violet grid content-start gap-2 rounded-[20px] p-5">
-            <span className="text-[13px] font-medium text-white/80">On a spotlight</span>
+          <div className="grid content-start gap-2 rounded-[20px] bg-foreground p-5">
+            <span className="text-[13px] font-medium text-black/60">On white, in the prompt dock</span>
             <Input
-              placeholder="Type the prompt, then press Enter"
-              className="h-12 rounded-[10px] border-white/15 bg-black/25 px-3.5 font-mono text-[15px] text-white placeholder:text-white/50 focus-visible:border-white/60 focus-visible:ring-white/25 dark:bg-black/25"
+              placeholder="Type the prompt above, then press Enter"
+              className="h-12 rounded-[10px] border-black/10 bg-black/[0.04] px-3.5 font-mono text-[15px] text-black placeholder:text-black/55 focus-visible:border-black/50 focus-visible:ring-black/10 dark:bg-black/[0.04]"
             />
           </div>
         </div>
       </Demo>
 
-      <Demo label="Cards" note="20px radius, surface 1, hairline ring. A card turns into a spotlight only when it's that card's moment.">
+      <Demo label="Cards" note="20px radius, surface 1, hairline ring. A card changes fill only when it's that card's moment.">
         <div className="grid gap-3 md:grid-cols-2">
           <Card className="gap-3 rounded-[20px] px-5 py-5 ring-signal/40">
             <div className="flex items-baseline justify-between">
@@ -549,7 +557,7 @@ function Components() {
             <Progress value={58} className="h-2" indicatorClassName="bg-signal" />
             <p className="text-sm text-muted-foreground">92% accurate. The next prompt appears when the agent finishes.</p>
           </Card>
-          <Card className="spotlight-water gap-3 rounded-[20px] bg-[#0a6fd6] px-5 py-5 text-white ring-0">
+          <Card className="gap-3 rounded-[20px] bg-water px-5 py-5 text-white ring-0">
             <span className="text-[15px] font-medium">You&rsquo;re under the water.</span>
             <div className="grid gap-1.5">
               <div className="flex justify-between text-[13px] text-white/85 tabular-nums">
@@ -569,7 +577,7 @@ function Shape() {
   const radii = [
     ["Pill", "rounded-full", "Buttons, badges, chips, turn pips", "9999px"],
     ["Input", "rounded-[10px]", "Text fields", "10px"],
-    ["Card", "rounded-[20px]", "Every card and spotlight", "20px"],
+    ["Card", "rounded-[20px]", "Every card, including filled ones", "20px"],
     ["Hero card", "rounded-[30px]", "The final score card only", "30px"],
   ];
   return (
@@ -680,7 +688,7 @@ function KeyframeDemo({ name, className, use }: { name: string; className: strin
       className="grid gap-4 rounded-[20px] bg-card p-5 text-left ring-1 ring-border transition-colors duration-200 hover:bg-accent"
     >
       <span className="grid h-16 place-items-center">
-        <span key={run} className={cn("spotlight-violet rounded-full px-3 py-1 text-sm font-semibold text-white", className)}>
+        <span key={run} className={cn("rounded-full bg-foreground px-3 py-1 text-sm font-semibold text-black", className)}>
           +128
         </span>
       </span>
@@ -740,16 +748,16 @@ function Rules() {
   const dos = [
     "Build on canvas, card and muted. Show depth by stepping up a surface.",
     "Use one white pill per view for the main action.",
-    "Keep violet for typing and blue for the agent and the shower, everywhere.",
+    "Keep white for typing and blue for the agent and the shower, everywhere.",
     "Put numbers that change in Geist Mono with tabular-nums.",
     "Import the components from components/ui and restyle them with className.",
     "Test with reduced motion on. The screen should still make sense.",
   ];
   const donts = [
     "Don't add a light mode or a light section.",
-    "Don't fill a whole section with a gradient. Gradients are cards.",
-    "Don't make a blue or violet primary button. Signal colors aren't fills.",
-    "Don't invent new grays. Text is white, #999 or white with opacity on a spotlight.",
+    "Don't use gradients. Not on cards, buttons, text or backgrounds.",
+    "Don't add new accent colors. It's black, white and one blue.",
+    "Don't invent new grays. Text is white, #999, or opacity steps on a filled card.",
     "Don't square off buttons or use bordered ghost buttons as the main action.",
     "Don't loosen headline tracking. Make the text smaller instead.",
   ];

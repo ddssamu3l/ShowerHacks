@@ -9,7 +9,7 @@ export interface Flight {
   text: string;
   from: { x: number; y: number };
   to: { x: number; y: number };
-  tone: "violet" | "water";
+  tone: "typing" | "water";
 }
 
 export function FlyingPoints({ flights, onDone }: { flights: Flight[]; onDone: (id: number) => void }) {
@@ -22,8 +22,8 @@ export function FlyingPoints({ flights, onDone }: { flights: Flight[]; onDone: (
         <motion.span
           key={flight.id}
           className={cn(
-            "pointer-events-none fixed top-0 left-0 z-50 rounded-full px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-white tabular-nums",
-            flight.tone === "violet" ? "spotlight-violet" : "spotlight-water",
+            "pointer-events-none fixed top-0 left-0 z-50 rounded-full px-3 py-1.5 text-sm font-semibold whitespace-nowrap tabular-nums",
+            flight.tone === "typing" ? "bg-foreground text-black" : "bg-water text-white",
           )}
           initial={{ opacity: 0, transform: `translate(${flight.from.x}px, ${flight.from.y}px) translate(-50%, -50%) scale(0.9)` }}
           animate={{

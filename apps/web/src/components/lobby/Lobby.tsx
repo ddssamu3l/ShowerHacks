@@ -106,7 +106,7 @@ export function Lobby() {
                     className={cn(
                       "flex cursor-pointer items-start gap-3 rounded-[20px] p-5 font-normal transition-[transform,background-color] duration-200 ease-[var(--ease-out)] active:scale-[0.99]",
                       session.id === sessionId
-                        ? "spotlight-cartridge bg-spotlight-violet text-white"
+                        ? "bg-accent ring-2 ring-signal"
                         : "bg-card ring-1 ring-border hover:bg-accent",
                     )}
                   >
@@ -154,7 +154,7 @@ export function Lobby() {
         <Card
           className={cn(
             "rounded-[20px] transition-[background-color,box-shadow] duration-300",
-            water.inWater && "spotlight-water bg-[#0a6fd6] text-white ring-0",
+            water.inWater && "bg-water text-white ring-0",
           )}
         >
           <CardHeader>

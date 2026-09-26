@@ -2,7 +2,9 @@
 
 A hackathon game about typing increasingly unhinged prompts while a fake coding agent makes increasingly stupid mistakes. Type while the agent waits; pretend to shower while it works. Highest score wins.
 
-This repository contains the team scaffold, a **shared body/hand/finger tracking framework**, the **Soap Rush timed challenge at `/vision`**, a **hand-placement viewer at `/vision/placement`**, and the earlier **Scrub Fighter prototype at `/vision/arcade`**. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are also provided. **The main scripted gameplay and leaderboard routes still need implementation by their owners below.** There are no real LLM calls or executed agent commands.
+This repository contains the team scaffold, a **shared body/hand/finger tracking framework**, the **Soap Rush timed challenge at `/vision`**, a **hand-placement viewer at `/vision/placement`**, and the earlier **Scrub Fighter prototype at `/vision/arcade`**. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are also provided. The **playable game** (lobby, play, results) runs end to end on a stand-in game loop until `createGame` lands; see [Playable game UI](#playable-game-ui). The leaderboard routes still need implementation. There are no real LLM calls or executed agent commands.
+
+**Agents and new contributors: start with [`AGENTS.md`](AGENTS.md).** The next planned change is replacing the coding-agent terminal with a bathroom renovation; all ideas are in [`docs/ideas.md`](docs/ideas.md).
 
 ## Run the scaffold
 
@@ -10,7 +12,8 @@ Use Node.js 22+ and npm. From the repository root:
 
 ```sh
 npm ci
-npm run dev                 # http://localhost:3000
+npm run dev                 # prepares vision models if missing, then http://localhost:3000
+npm run brand               # brand guidelines app, http://localhost:3002
 npm run validate:sessions   # validate every content/sessions/*.json
 npm run typecheck           # shared packages, scripts, and web app
 npm test                    # unit tests (vitest) for packages/
@@ -18,6 +21,17 @@ npm run build               # session validation + production Next.js build
 ```
 
 The web app uses the Next.js App Router and React; local TypeScript packages are compiled by Next.js. This follows the [official Next.js installation guidance](https://nextjs.org/docs/app/getting-started/installation). No database, API key, or separate backend process is needed. The intended demo deployment is one persistent Node.js server with a writable local disk.
+
+## Playable game UI
+
+`/` is the lobby (nickname, session, camera check), `/play` the round, `/results` the score breakdown and a sample leaderboard.
+
+- **Loop:** `apps/web/src/components/design/design-game.ts` implements `GameController` with the timing rules below and scores typing with the engine's `scoreTyping`, including the keystroke log. Swap it for `createGame` without changing the screens.
+- **Prompt dock:** the white card at the top. Live per-letter states, a speed bar that drains toward `timeLimitMs`, a streak chip, and the scorer's notes after each submit.
+- **Agents:** the sessions list `commit-to-love` first. A strip shows each agent's activity and progress from `getAgentWindows`; transcript lines are labeled by agent.
+- **Camera and shower:** `components/camera/CameraProvider.tsx` wraps `createTracking`; shower efficiency comes from `PlacementScrubDetector` and only counts while the body is under the moving water stream. Foam bubbles follow raw hand speed and are visual only.
+- **Filth:** camera rounds start with the player covered in mud and 💩 (`components/camera/filth.ts`). Scrubbing a region under the water cleans it. Visual only; it does not change the score yet.
+- **Brand:** `apps/brand` (`npm run brand`) imports the real `globals.css` and `components/ui`, so it can't drift. Flat Framer style with no gradients: white card for typing, solid blue for the shower.
 
 ## Webcam prototypes
 
@@ -120,7 +134,7 @@ Reference implementation: `scrub-activity.ts` consumes the shared frame, `scrub-
 
 | Owner | Owns | Deliverable and handoff |
 | --- | --- | --- |
-| **UI teammate** | `apps/web/src/app/` except `api/`; `apps/web/src/components/`; client hooks; styling | Nickname/session selection, camera preview and efficiency on the left, mock coding transcript/editor and prompt input on the right, score display, results and leaderboard. Fetch sessions, create the engine and vision controller, render engine snapshots, and submit the final result to the leaderboard API. |
+| **UI teammate** | `apps/web/src/app/` except `api/`; `apps/web/src/components/`; `apps/brand/`; client hooks; styling | Implemented: lobby, play, and results screens, prompt dock, agent strip, camera overlay and filth, brand guidelines. Remaining: replace the stand-in loop with `createGame`, wire the leaderboard API, and the bathroom renovation panel in [`AGENTS.md`](AGENTS.md). Fetch sessions, create the engine and vision controller, render engine snapshots, and submit the final result to the leaderboard API. |
 | **Session teammate** | `content/sessions/*.json` | Funny, fully scripted sessions that pass validation. Each turn supplies one exact target prompt, agent duration, timestamped messages/tool activity/file edits, and its final response. No app code or scoring formulas needed. |
 | **Game-state teammate** | `packages/game-engine/`; `apps/web/src/app/api/`; `apps/web/src/lib/server/` | Implement the state machine, replay scheduler, typing/shower scoring, and results. Implement session-loading and disk-leaderboard APIs. Deliver `createGame: GameFactory` and the API responses defined below. Keep the engine independent of React and the camera model. |
 | **PM + vision (us)** | `packages/vision/`; generated `apps/web/public/vision-assets/`; shared contract coordination | Maintain shared body/hand/finger tracking, activity IO, score-window helper, camera/model setup, and reference scrub adapter. Deliver `createTracking` / `createMockTracking` plus the compatible `createVision` / `createMockVision`. Activity owners implement adapters against `TrackingFrame`; the engine owns activity switching and final points. |
@@ -128,11 +142,15 @@ Reference implementation: `scrub-activity.ts` consumes the shared frame, `scrub-
 Everyone imports shared types from `@vibecodemaxxing/contracts`. Coordinate changes to that package, root configuration, dependency lockfile, and this README before changing a shared interface. No teammate needs another teammate's implementation to start working against the types.
 
 ```text
+AGENTS.md                  # Handoff for agents and new contributors; next task
+docs/ideas.md              # Ideas for what the typing should build
+apps/brand/                # Brand guidelines app (npm run brand)
 apps/web/
   src/app/                 # UI pages/layout; api/ belongs to game-state owner
     api/sessions/          # GET list + GET [id] (to implement)
     api/leaderboard/       # GET standings + POST result (to implement)
-  src/components/          # React components
+  src/components/          # React components: lobby, play, results, camera, shower, fx, ui
+  src/components/design/   # Stand-in game loop and session list until createGame lands
   src/lib/server/          # Session loader and serialized disk store (to implement)
   public/vision-assets/    # Generated body/hand models, WASM, worker (gitignored)
 packages/
@@ -148,6 +166,7 @@ packages/
   vision/src/index.ts      # Implemented createVision, createMockVision + feedback types
 content/sessions/
   ship-it.json             # Copy this complete three-turn example
+  commit-to-love.json      # Ten prompts, three agents
 scripts/                   # Session/schema tooling
 data/                      # Runtime leaderboard.json; gitignored
 README.md                  # The single team handoff document

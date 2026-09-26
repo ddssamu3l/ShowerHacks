@@ -14,7 +14,7 @@
     "vision:prepare": "node scripts/prepare-vision.mjs",
     "vision:dev": "npm run vision:prepare && npm run dev",
     "test:vision": "node --import tsx --test packages/vision/src/*.test.ts",
-    "dev": "npm run dev --workspace @vibecodemaxxing/web",
+    "dev": "npm run vision:prepare && npm run dev --workspace @vibecodemaxxing/web",
     "brand": "npm run dev --workspace @vibecodemaxxing/brand",
     "build": "npm run validate:sessions && npm run build --workspace @vibecodemaxxing/web",
     "start": "npm run start --workspace @vibecodemaxxing/web",

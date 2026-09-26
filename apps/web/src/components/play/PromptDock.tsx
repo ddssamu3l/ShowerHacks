@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { GameState } from "@vibecodemaxxing/contracts";
-import { SCORING } from "@vibecodemaxxing/contracts";
+import { TYPING_SCORING, type GameState, type KeystrokeEvent } from "@vibecodemaxxing/contracts";
+import { timeLimitMs } from "@vibecodemaxxing/game-engine";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,8 +51,11 @@ function streakOf(target: string[], typed: string[], complete: boolean) {
   return streak;
 }
 
-function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase: "typing" }>; go: boolean; onSubmit: (text: string) => boolean }) {
+type Submit = (text: string, keystrokes: KeystrokeEvent[]) => boolean;
+
+function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase: "typing" }>; go: boolean; onSubmit: Submit }) {
   const [draft, setDraft] = useState("");
+  const keystrokes = useRef<KeystrokeEvent[]>([]);
   const [pops, setPops] = useState<Record<number, Pop[]>>({});
   const [shakes, setShakes] = useState<Record<number, number>>({});
   const settled = useRef(new Set<number>());
@@ -92,21 +95,23 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
 
   const streak = streakOf(targetWords, typedWords, complete);
   const seconds = Math.max(0, (now - state.typingStartedAtMs) / 1000);
-  const onPace = length / SCORING.targetCharactersPerSecond;
-  const heat = seconds <= onPace ? "text-white" : seconds <= onPace * 1.6 ? "text-heat" : "text-miss";
+  const limit = timeLimitMs(length) / 1000;
+  const par = limit / TYPING_SCORING.timeLimitFactor;
+  const speedLeft = Math.max(0, 1 - seconds / limit);
+  const heat = seconds <= par ? "bg-black/[0.06] text-black" : seconds <= limit * 0.66 ? "bg-heat text-black" : "bg-miss text-white";
   const activeWord = typedWords.length - 1;
 
   return (
-    <Card className="spotlight-violet on-spotlight relative gap-3 overflow-visible rounded-[20px] bg-spotlight-violet px-5 py-5 text-white ring-0">
+    <Card className="on-inverse relative gap-3 overflow-visible rounded-[20px] bg-foreground px-5 py-5 text-black ring-0">
       <form
         className="grid gap-4"
         onSubmit={(event) => {
           event.preventDefault();
-          if (draft.length > 0) onSubmit(draft);
+          if (draft.length > 0) onSubmit(draft, keystrokes.current);
         }}
       >
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[13px] font-medium text-white/80">
+          <span className="text-[13px] font-medium text-black/60">
             Prompt {state.turnIndex + 1} of {state.turnCount}
           </span>
           <div className="flex items-center gap-2">
@@ -114,7 +119,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
               {streak >= 2 && (
                 <motion.span
                   key={streak}
-                  className="rounded-full bg-black/30 px-3 py-1 text-[13px] font-semibold text-heat tabular-nums"
+                  className="rounded-full bg-black px-3 py-1 text-[13px] font-semibold text-white tabular-nums"
                   initial={{ opacity: 0, transform: "scale(0.85)" }}
                   animate={{ opacity: 1, transform: "scale(1)" }}
                   exit={{ opacity: 0, transform: "scale(0.95)" }}
@@ -124,11 +129,18 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
                 </motion.span>
               )}
             </AnimatePresence>
-            <span className={cn("rounded-full bg-black/30 px-3 py-1 font-mono text-base tabular-nums transition-colors duration-300", heat)}>
+            <span className={cn("rounded-full px-3 py-1 font-mono text-base tabular-nums transition-colors duration-300", heat)}>
               {seconds.toFixed(1)}s
             </span>
           </div>
         </div>
+
+        <Progress
+          value={speedLeft * 100}
+          aria-label="Speed points left"
+          className="h-1 bg-black/10"
+          indicatorClassName={cn("transition-none", speedLeft > 0.34 ? "bg-black" : "bg-miss")}
+        />
 
         <p className="font-mono text-[clamp(18px,1.7vw,24px)] leading-[1.6] break-words" aria-label={target}>
           {targetWords.map((word, wordIndex) => {
@@ -141,7 +153,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
                   key={shakes[wordIndex] ?? 0}
                   className={cn("relative inline-block", shakes[wordIndex] && "animate-[shake_320ms_var(--ease-out)]")}
                 >
-                  <PointPops pops={pops[wordIndex] ?? []} className="rounded-full bg-white px-1.5 py-0.5 font-sans text-xs leading-none text-spotlight-violet" />
+                  <PointPops pops={pops[wordIndex] ?? []} className="rounded-full bg-black px-1.5 py-0.5 font-sans text-xs leading-none text-white" />
                   {letters.map((char, index) => {
                     const charState = !typedWord || index >= typed.length ? "pending" : typed[index] === char ? "right" : "wrong";
                     const caret = wordIndex === activeWord && index === typed.length;
@@ -171,12 +183,15 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
           autoComplete="off"
           aria-label="Type the prompt, then press Enter"
           placeholder="Type the prompt above, then press Enter"
-          className="h-12 rounded-[10px] border-white/15 bg-black/25 px-3.5 font-mono text-[15px] text-white placeholder:text-white/50 focus-visible:border-white/60 focus-visible:ring-white/25 dark:bg-black/25"
+          className="h-12 rounded-[10px] border-black/10 bg-black/[0.04] px-3.5 font-mono text-[15px] text-black placeholder:text-black/55 focus-visible:border-black/50 focus-visible:ring-black/10 dark:bg-black/[0.04]"
           onChange={(event) => changeDraft(event.target.value)}
           onPaste={(event) => event.preventDefault()}
           onDrop={(event) => event.preventDefault()}
           onKeyDown={(event) => {
             if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault();
+            if (event.key === "Backspace" || (event.key.length === 1 && !event.metaKey && !event.ctrlKey)) {
+              keystrokes.current.push({ key: event.key, atMs: performance.now() - state.typingStartedAtMs });
+            }
           }}
         />
       </form>
@@ -184,7 +199,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
       <AnimatePresence>
         {go && (
           <motion.p
-            className="pointer-events-none absolute inset-0 grid place-items-center font-display text-7xl font-semibold tracking-[-0.05em] text-white"
+            className="pointer-events-none absolute inset-0 grid place-items-center rounded-[20px] bg-foreground/85 font-display text-7xl font-semibold tracking-[-0.05em] text-black"
             initial={{ opacity: 0, transform: "scale(1.25)" }}
             animate={{ opacity: 1, transform: "scale(1)" }}
             exit={{ opacity: 0, transform: "scale(0.96)" }}
@@ -213,7 +228,7 @@ function AgentCard({ state }: { state: Extract<GameState, { phase: "agent" }> })
       <Progress value={100 * (1 - left / total)} className="h-2" indicatorClassName="bg-signal transition-none" />
       <div className="flex items-center gap-3">
         <motion.span
-          className="spotlight-violet rounded-full px-3 py-1 text-sm font-semibold text-white tabular-nums"
+          className="rounded-full bg-foreground px-3 py-1 text-sm font-semibold text-black tabular-nums"
           initial={{ opacity: 0, transform: "scale(0.85)" }}
           animate={{ opacity: 1, transform: "scale(1)" }}
           transition={{ type: "spring", duration: 0.45, bounce: 0.4 }}
@@ -221,7 +236,7 @@ function AgentCard({ state }: { state: Extract<GameState, { phase: "agent" }> })
           +{Math.round(state.typingResult.score)} typing
         </motion.span>
         <p className="text-sm text-muted-foreground">
-          {Math.round(state.typingResult.accuracy * 100)}% accurate. The next prompt appears when the agent finishes.
+          {state.typingResult.notes.join(" · ")}. The next prompt appears when the agent finishes.
         </p>
       </div>
     </Card>
@@ -233,14 +248,14 @@ interface PromptDockProps {
   countdown: number | null;
   go: boolean;
   onStart: () => void;
-  onSubmit: (text: string) => boolean;
+  onSubmit: Submit;
 }
 
 export function PromptDock({ state, countdown, go, onStart, onSubmit }: PromptDockProps) {
   if (state.phase === "ready") {
     if (countdown !== null) {
       return (
-        <Card className="spotlight-magenta min-h-[132px] justify-center rounded-[20px] bg-spotlight-magenta text-white ring-0">
+        <Card className="min-h-[132px] justify-center rounded-[20px] bg-foreground text-black ring-0">
           <motion.p
             key={countdown}
             className="text-center font-display text-7xl font-semibold tracking-[-0.05em] tabular-nums"

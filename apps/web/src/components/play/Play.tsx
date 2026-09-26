@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import type { GameController, GameState } from "@vibecodemaxxing/contracts";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CameraView } from "../camera/CameraView";
+import { PLACEMENT_LABELS } from "@vibecodemaxxing/vision";
 import { useCamera, usePoseSnapshot } from "../camera/CameraProvider";
 import { PixiWater } from "../shower/PixiWater";
 import { createDesignGame } from "../design/design-game";
 import { findSession } from "../design/session";
 import { readPlayer, saveResult, type PlayerChoice } from "../design/run-storage";
+import { Agents } from "./Agents";
 import { Transcript } from "./Transcript";
 import { Editor } from "./Editor";
 import { PromptDock } from "./PromptDock";
@@ -62,7 +64,7 @@ function ScoreBar({ state, score, practice }: { state: GameState; score: Score; 
               key={index}
               className={cn(
                 "h-1.5 w-7 rounded-full transition-colors duration-300",
-                done ? "gradient-fill" : now ? (state.phase === "agent" ? "bg-signal" : "bg-violet-ink") : "bg-accent",
+                done ? "bg-foreground" : now ? (state.phase === "agent" ? "bg-signal" : "bg-foreground/45") : "bg-accent",
               )}
             />
           );
@@ -71,7 +73,7 @@ function ScoreBar({ state, score, practice }: { state: GameState; score: Score; 
       <dl className="flex gap-6">
         <div className="grid justify-items-end" data-fx="typing-score">
           <dt className="text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase">Typing</dt>
-          <dd className="font-mono text-xl text-violet-ink tabular-nums">
+          <dd className="font-mono text-xl tabular-nums">
             <AnimatedNumber value={score.typing} />
           </dd>
         </div>
@@ -100,6 +102,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const pose = usePoseSnapshot();
   const water = useInWater();
   const practice = player.inputMode === "mock";
+  const session = useMemo(() => findSession(player.sessionId), [player.sessionId]);
   const state = useGame(game);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [go, setGo] = useState(false);
@@ -131,7 +134,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
       game.ingestVision({
         capturedAtMs: frame.capturedAtMs,
         efficiency: isInWater() ? frame.scrub : 0,
-        confidence: frame.tracking ? 0.9 : 0,
+        confidence: frame.confidence,
         tracking: frame.tracking,
       });
     }, 66);
@@ -149,7 +152,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
     const showerFrom = centerOf(showerRef.current);
     const next: Flight[] = [];
     if (typingFrom && typingTo) {
-      next.push({ id: ++flightId.current, text: `+${Math.round(turn.typing.score)} typing`, from: typingFrom, to: typingTo, tone: "violet" });
+      next.push({ id: ++flightId.current, text: `+${Math.round(turn.typing.score)} typing`, from: typingFrom, to: typingTo, tone: "typing" });
     }
     if (showerFrom && showerTo) {
       next.push({ id: ++flightId.current, text: `+${Math.round(turn.shower.score)} shower`, from: showerFrom, to: showerTo, tone: "water" });
@@ -207,13 +210,23 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   }, [game, every, stopEvery, later]);
 
   return (
-    <div className="grid h-svh grid-cols-[minmax(0,1fr)_minmax(300px,380px)] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-3 max-lg:h-auto max-lg:grid-cols-1">
+    <div className="grid h-svh grid-cols-[minmax(0,1fr)_minmax(300px,380px)] grid-rows-[auto_auto_minmax(0,1fr)] gap-3 p-3 max-lg:h-auto max-lg:grid-cols-1">
       <ScoreBar state={state} score={shownScore} practice={practice} />
+      <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
+        <PromptDock
+          state={state}
+          countdown={countdown}
+          go={go}
+          onStart={start}
+          onSubmit={(text, keystrokes) => game.submitPrompt(text, keystrokes)}
+        />
+      </section>
       <section className="relative min-h-0 max-lg:aspect-[4/3]" aria-label="Your shower">
         <CameraView
           className="aspect-auto size-full"
           onBodyX={water.setBodyX}
           bubbles={wet}
+          dirty={!practice}
           message={practice ? "Practice mode. The shower scores itself." : undefined}
         >
           <PixiWater active={showering} onMove={water.setWaterX} />
@@ -223,7 +236,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           className={cn(
             "absolute bottom-4 left-4 z-10 w-[min(300px,calc(100%-2rem))] overflow-visible rounded-[20px] transition-[background-color,box-shadow] duration-300",
             wet
-              ? "spotlight-water bg-[#0a6fd6] text-white ring-0"
+              ? "bg-water text-white ring-0"
               : "bg-black/60 ring-white/10 backdrop-blur-md",
             showering && !wet && "ring-signal/50",
           )}
@@ -238,26 +251,30 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
                 showering && !wet && "animate-[nudge_1.6s_var(--ease-out)_infinite] text-signal",
               )}
             >
-              {showering ? (wet ? "Under the water. Scrub!" : "Get under the water.") : "Shower is off while you type."}
+              {showering
+                ? wet
+                  ? pose.zone && pose.scrub > 0.15
+                    ? `Scrubbing your ${PLACEMENT_LABELS[pose.zone].toLowerCase()}.`
+                    : "Under the water. Scrub!"
+                  : "Get under the water."
+                : "Shower is off while you type."}
             </p>
             <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />
             <Meter label="This shower" value={live} onSpotlight={wet} />
           </CardContent>
         </Card>
       </section>
-      <aside className="grid min-h-0 grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3 max-lg:grid-rows-none" aria-label="Coding agent">
-        <Transcript entries={state.transcript} working={showering} />
+      <aside
+        className={cn(
+          "grid min-h-0 gap-3 max-lg:grid-rows-none",
+          session.agents ? "grid-rows-[auto_minmax(0,1.6fr)_minmax(0,1fr)]" : "grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)]",
+        )}
+        aria-label="Coding agents"
+      >
+        <Agents session={session} state={state} />
+        <Transcript entries={state.transcript} working={showering} agents={session.agents} />
         <Editor entries={state.transcript} />
       </aside>
-      <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
-        <PromptDock
-          state={state}
-          countdown={countdown}
-          go={go}
-          onStart={start}
-          onSubmit={(text) => game.submitPrompt(text)}
-        />
-      </section>
       <FlyingPoints flights={flights} onDone={(id) => setFlights((current) => current.filter((flight) => flight.id !== id))} />
     </div>
   );

@@ -33,14 +33,9 @@
 
   --color-signal: var(--signal);
   --color-success: var(--success);
-  --color-violet-ink: #a594ff;
-  --color-magenta-ink: #e58af7;
+  --color-water: var(--water);
   --color-heat: #ff7a3d;
   --color-miss: #ff5577;
-  --color-spotlight-violet: #6a4cf5;
-  --color-spotlight-magenta: #d44df0;
-  --color-spotlight-orange: #ff7a3d;
-  --color-spotlight-coral: #ff5577;
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -72,6 +67,7 @@
   --input: #262626;
   --ring: #0099ff;
   --signal: #0099ff;
+  --water: #0a6fd6;
   --success: #22c55e;
   --radius: 0.625rem;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -123,55 +119,21 @@
     width: 2px;
   }
 
-  /* Each Framer spotlight gradient has one job: violet typing, blue-violet water,
-     violet-magenta the picked session, magenta-orange celebration. */
-  .spotlight {
-    background:
-      radial-gradient(120% 90% at 0% 0%, var(--color-spotlight-magenta) 0%, transparent 60%),
-      radial-gradient(120% 120% at 100% 100%, var(--color-spotlight-orange) 0%, transparent 55%),
-      var(--color-spotlight-violet);
+  /* Typing happens on white: Framer's inverse surface. */
+  .on-inverse .char-pending {
+    color: rgb(0 0 0 / 0.55);
   }
 
-  .spotlight-violet {
-    background:
-      radial-gradient(90% 140% at 0% 0%, #8a6dff 0%, transparent 60%),
-      radial-gradient(80% 120% at 100% 100%, #3b25b8 0%, transparent 70%),
-      var(--color-spotlight-violet);
+  .on-inverse .char-right {
+    color: #000000;
   }
 
-  .spotlight-water {
-    background:
-      radial-gradient(110% 120% at 0% 0%, #22b4ff 0%, transparent 62%),
-      radial-gradient(100% 120% at 100% 100%, var(--color-spotlight-violet) 0%, transparent 70%),
-      #0a6fd6;
+  .on-inverse .char-wrong {
+    color: #d61f45;
   }
 
-  .spotlight-cartridge {
-    background:
-      radial-gradient(110% 130% at 100% 0%, var(--color-spotlight-magenta) 0%, transparent 60%),
-      var(--color-spotlight-violet);
-  }
-
-  .spotlight-magenta {
-    background:
-      radial-gradient(110% 130% at 0% 100%, var(--color-spotlight-orange) 0%, transparent 60%),
-      var(--color-spotlight-magenta);
-  }
-
-  .on-spotlight .char-pending {
-    color: rgb(255 255 255 / 0.45);
-  }
-
-  .on-spotlight .char-wrong {
-    color: #ffc2cf;
-  }
-
-  .on-spotlight .char[data-caret] {
-    box-shadow: inset 2px 0 0 #ffffff;
-  }
-
-  .gradient-fill {
-    background: linear-gradient(90deg, var(--color-spotlight-violet), var(--color-spotlight-magenta));
+  .on-inverse .char[data-caret] {
+    box-shadow: inset 2px 0 0 #000000;
   }
 }
 
