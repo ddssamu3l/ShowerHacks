@@ -207,7 +207,13 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   }, [game, every, stopEvery, later]);
 
   return (
-    <div className="grid h-svh grid-cols-[minmax(0,1fr)_minmax(300px,380px)] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-3 max-lg:h-auto max-lg:grid-cols-1">
+    <div
+      className={cn(
+        "grid h-svh grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-3 transition-[grid-template-columns] duration-500 ease-[var(--ease-in-out)] max-lg:h-auto max-lg:grid-cols-1",
+        // While showering the agent panels fold away so the camera takes the whole width.
+        showering ? "grid-cols-[minmax(0,1fr)_0fr]" : "grid-cols-[minmax(0,1fr)_minmax(300px,380px)]",
+      )}
+    >
       <ScoreBar state={state} score={shownScore} practice={practice} />
       <section className="relative min-h-0 max-lg:aspect-[4/3]" aria-label="Your shower">
         <CameraView
@@ -245,7 +251,14 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           </CardContent>
         </Card>
       </section>
-      <aside className="grid min-h-0 grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3 max-lg:grid-rows-none" aria-label="Coding agent">
+      <aside
+        className={cn(
+          "grid min-h-0 min-w-0 grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3 overflow-hidden transition-opacity duration-300 max-lg:grid-rows-none",
+          showering && "pointer-events-none opacity-0 max-lg:hidden",
+        )}
+        aria-label="Coding agent"
+        aria-hidden={showering}
+      >
         <Transcript entries={state.transcript} working={showering} />
         <Editor entries={state.transcript} />
       </aside>
