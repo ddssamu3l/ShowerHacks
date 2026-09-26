@@ -56,10 +56,10 @@ function seeded(part: string) {
 
 function makeSplats(part: BodyPart): Splat[] {
   const random = seeded(part);
-  return Array.from({ length: 8 }, () => ({
+  return Array.from({ length: 5 }, () => ({
     u: (random() - 0.5) * 1.5,
     v: (random() - 0.5) * 1.5,
-    r: 0.2 + random() * 0.3,
+    r: 0.09 + random() * 0.13,
     color: MUD[Math.floor(random() * MUD.length)],
     lobes: Array.from({ length: 4 }, () => ({
       dx: (random() - 0.5) * 1.4,
@@ -164,14 +164,13 @@ export function drawFilth(
     outline.forEach((point, index) => (index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y)));
     ctx.closePath();
     ctx.clip();
-    ctx.globalAlpha = 0.55 * level;
-    ctx.fillStyle = MUD[1];
-    ctx.fill();
+    // Keep the camera image visible: dirt is a handful of small spots,
+    // rather than an opaque wash over the whole tracked body region.
     for (const splat of filth.splats.get(part) ?? []) {
       const x = box.cx + splat.u * box.hw;
       const y = box.cy + splat.v * box.hh;
-      const r = splat.r * Math.max(box.hw, box.hh);
-      ctx.globalAlpha = 0.85 * level;
+      const r = Math.min(22, splat.r * Math.max(box.hw, box.hh));
+      ctx.globalAlpha = 0.7 * level;
       ctx.fillStyle = splat.color;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -185,7 +184,7 @@ export function drawFilth(
 
     const poop = filth.poops.get(part);
     if (poop && level > 0.35) {
-      const size = Math.max(22, Math.min(box.hw, box.hh) * 1.1);
+      const size = Math.max(10, Math.min(24, Math.min(box.hw, box.hh) * 0.42));
       ctx.save();
       ctx.globalAlpha = Math.min(1, (level - 0.35) / 0.3);
       ctx.font = `${size}px serif`;

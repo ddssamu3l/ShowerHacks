@@ -104,9 +104,9 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
   const activeWord = typedWords.length - 1;
 
   return (
-    <Card className="on-inverse relative gap-3 overflow-visible rounded-[20px] bg-foreground px-5 py-5 text-black ring-0">
+    <Card className="on-inverse relative gap-2 overflow-visible rounded-2xl bg-foreground px-4 py-3.5 text-black ring-0">
       <form
-        className="grid gap-4"
+        className="grid gap-2.5"
         onSubmit={(event) => {
           event.preventDefault();
           if (draft.length > 0) onSubmit(draft, keystrokes.current);
@@ -144,7 +144,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
           indicatorClassName={cn("transition-none", speedLeft > 0.34 ? "bg-black" : "bg-miss")}
         />
 
-        <p className="font-mono text-[clamp(18px,1.7vw,24px)] leading-[1.6] break-words" aria-label={target}>
+        <p className="font-mono text-[clamp(16px,1.35vw,20px)] leading-[1.45] break-words" aria-label={target}>
           {targetWords.map((word, wordIndex) => {
             const typed = Array.from(typedWords[wordIndex] ?? "");
             const letters = Array.from(word);
@@ -185,7 +185,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
           autoComplete="off"
           aria-label="Type the prompt, then press Enter"
           placeholder="Type the prompt above, then press Enter"
-          className="h-12 rounded-[10px] border-black/10 bg-black/[0.04] px-3.5 font-mono text-[15px] text-black placeholder:text-black/55 focus-visible:border-black/50 focus-visible:ring-black/10 dark:bg-black/[0.04]"
+          className="h-10 rounded-[10px] border-black/10 bg-black/[0.04] px-3.5 font-mono text-[15px] text-black placeholder:text-black/55 focus-visible:border-black/50 focus-visible:ring-black/10 dark:bg-black/[0.04]"
           onChange={(event) => changeDraft(event.target.value)}
           onPaste={(event) => event.preventDefault()}
           onDrop={(event) => event.preventDefault()}
@@ -201,7 +201,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
       <AnimatePresence>
         {go && (
           <motion.p
-            className="pointer-events-none absolute inset-0 grid place-items-center rounded-[20px] bg-foreground/85 font-display text-7xl font-semibold tracking-[-0.05em] text-black"
+            className="pointer-events-none absolute inset-0 grid place-items-center rounded-2xl bg-foreground/85 font-display text-5xl font-semibold tracking-[-0.05em] text-black"
             initial={{ opacity: 0, transform: "scale(1.25)" }}
             animate={{ opacity: 1, transform: "scale(1)" }}
             exit={{ opacity: 0, transform: "scale(0.96)" }}
@@ -222,20 +222,25 @@ function AgentCard({ state }: { state: Extract<GameState, { phase: "agent" }> })
   const left = Math.max(0, state.agentEndsAtMs - now);
 
   return (
-    <Card className="gap-3 rounded-[20px] px-5 py-5 ring-signal/40">
+    <Card className="gap-2 rounded-2xl px-4 py-3 ring-signal/40">
       <div className="flex items-baseline justify-between">
         <span className="text-[13px] font-medium text-signal">Agent is working. Go scrub.</span>
         <span className="font-mono text-lg text-signal tabular-nums">{(left / 1000).toFixed(1)}s</span>
       </div>
-      <Progress value={100 * (1 - left / total)} className="h-2" indicatorClassName="bg-signal transition-none" />
+      <Progress value={100 * (1 - left / total)} className="h-1.5" indicatorClassName="bg-signal transition-none" />
       {state.typingResult.definitionQuiz && (
         <div className="grid gap-1 rounded-xl bg-accent p-3 text-sm">
           <p className="font-medium">{state.typingResult.definitionQuiz.question.word} · {Math.round(state.typingResult.accuracy * 100)}% meaning match</p>
           <p className="text-muted-foreground">{state.typingResult.definitionQuiz.feedback}</p>
-          {state.typingResult.definitionQuiz.definition && <p><span className="font-medium">Reference: </span>{state.typingResult.definitionQuiz.definition}</p>}
+          {state.typingResult.definitionQuiz.definition && (
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer py-1">Reference definition</summary>
+              <p className="pt-1">{state.typingResult.definitionQuiz.definition}</p>
+            </details>
+          )}
         </div>
       )}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <motion.span
           className="rounded-full bg-foreground px-3 py-1 text-sm font-semibold text-black tabular-nums"
           initial={{ opacity: 0, transform: "scale(0.85)" }}
@@ -267,10 +272,10 @@ function PromptDockContent({ state, countdown, go, onStart, onSubmit, onQuizDraf
   if (state.phase === "ready") {
     if (countdown !== null) {
       return (
-        <Card className="min-h-[132px] justify-center rounded-[20px] bg-foreground text-black ring-0">
+        <Card className="min-h-[92px] justify-center rounded-2xl bg-foreground text-black ring-0">
           <motion.p
             key={countdown}
-            className="text-center font-display text-7xl font-semibold tracking-[-0.05em] tabular-nums"
+            className="text-center font-display text-5xl font-semibold tracking-[-0.05em] tabular-nums"
             initial={{ opacity: 0, transform: "scale(1.4)" }}
             animate={{ opacity: 1, transform: "scale(1)" }}
             transition={{ type: "spring", duration: 0.4, bounce: 0.35 }}
@@ -282,7 +287,7 @@ function PromptDockContent({ state, countdown, go, onStart, onSubmit, onQuizDraf
       );
     }
     return (
-      <Card className="min-h-[132px] justify-center gap-3 rounded-[20px] px-5 py-5">
+      <Card className="min-h-[92px] justify-center gap-2 rounded-2xl px-4 py-3">
         <div className="flex items-center justify-between gap-6">
           <div className="grid gap-1">
             <p className="font-display text-2xl font-medium tracking-[-0.03em]">Ready, {state.nickname}?</p>
@@ -317,7 +322,7 @@ function PromptDockContent({ state, countdown, go, onStart, onSubmit, onQuizDraf
   }
 
   return (
-    <Card className="gap-3 rounded-[20px] px-5 py-5">
+    <Card className="gap-2 rounded-2xl px-4 py-3">
       <p className="font-display text-2xl font-medium tracking-[-0.03em]">Run finished. Adding up your score.</p>
     </Card>
   );

@@ -51,8 +51,8 @@ type Score = GameState["score"];
 function ScoreBar({ state, score, practice }: { state: GameState; score: Score; practice: boolean }) {
   const turn = state.phase === "typing" || state.phase === "agent" || state.phase === "judging" ? state.turnIndex : state.completedTurns.length;
   return (
-    <header className="col-span-2 flex h-14 items-center justify-between gap-4 px-2 max-lg:col-span-1">
-      <div className="flex items-center gap-3">
+    <header className="col-span-2 flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1 py-1 max-lg:col-span-1">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="font-display text-xl font-medium tracking-[-0.04em]">Vibecodemaxxing</span>
         {practice && <Badge variant="secondary">Practice · not on the leaderboard</Badge>}
       </div>
@@ -64,14 +64,14 @@ function ScoreBar({ state, score, practice }: { state: GameState; score: Score; 
             <li
               key={index}
               className={cn(
-                "h-1.5 w-7 rounded-full transition-colors duration-300",
+                "h-1.5 w-4 sm:w-5 rounded-full transition-colors duration-300",
                 done ? "bg-foreground" : now ? (state.phase === "agent" ? "bg-signal" : "bg-foreground/45") : "bg-accent",
               )}
             />
           );
         })}
       </ol>
-      <dl className="flex gap-6">
+      <dl className="flex gap-4">
         <div className="grid justify-items-end" data-fx="typing-score">
           <dt className="text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase">Words</dt>
           <dd className="font-mono text-xl tabular-nums">
@@ -211,7 +211,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   }, [game, every, stopEvery, later]);
 
   return (
-    <div className="grid h-svh grid-cols-[minmax(0,1fr)_minmax(300px,380px)] grid-rows-[auto_auto_minmax(0,1fr)] gap-3 p-3 max-lg:h-auto max-lg:grid-cols-1">
+    <div className="grid min-h-svh grid-cols-1 grid-rows-[auto_auto_minmax(360px,1fr)] gap-2.5 p-3 lg:h-svh lg:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] lg:grid-rows-[auto_auto_minmax(320px,1fr)]">
       <ScoreBar state={state} score={shownScore} practice={practice} />
       <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
         <PromptDock
@@ -225,7 +225,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           onSkipQuiz={() => game.skipQuiz()}
         />
       </section>
-      <section className="relative min-h-0 max-lg:aspect-[4/3]" aria-label="Your shower">
+      <section className="relative min-w-0 min-h-[360px] lg:min-h-[320px]" aria-label="Your shower">
         <CameraView
           className="aspect-auto size-full"
           onBodyX={water.setBodyX}
@@ -238,20 +238,20 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
         <Card
           ref={showerRef}
           className={cn(
-            "absolute bottom-4 left-4 z-10 w-[min(300px,calc(100%-2rem))] overflow-visible rounded-[20px] transition-[background-color,box-shadow] duration-300",
+            "absolute bottom-3 left-3 z-10 w-[min(380px,calc(100%-1.5rem))] overflow-visible rounded-2xl py-3 transition-[background-color,box-shadow] duration-300",
             wet
               ? "bg-water text-white ring-0"
               : "bg-black/60 ring-white/10 backdrop-blur-md",
             showering && !wet && "ring-signal/50",
           )}
         >
-          <CardContent className="relative grid gap-3">
+          <CardContent className="relative grid grid-cols-2 gap-x-5 gap-y-2 px-4">
             <span className="pointer-events-none absolute top-1 right-8 size-0">
               <PointPops pops={showerPops} className="text-white" />
             </span>
             <p
               className={cn(
-                "text-[15px] font-medium",
+                "col-span-2 text-[13px] font-medium",
                 showering && !wet && "animate-[nudge_1.6s_var(--ease-out)_infinite] text-signal",
               )}
             >
@@ -270,7 +270,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
       </section>
       <aside
         className={cn(
-          "grid min-h-0 gap-3 max-lg:grid-rows-none",
+          "grid min-h-0 gap-2.5 max-lg:grid-rows-none max-lg:[&>*]:max-h-64",
           session.agents ? "grid-rows-[auto_minmax(0,1.6fr)_minmax(0,1fr)]" : "grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)]",
         )}
         aria-label="Coding agents"
