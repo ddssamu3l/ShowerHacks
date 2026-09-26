@@ -13,6 +13,7 @@ import { useCamera, usePoseSnapshot } from "../camera/CameraProvider";
 import { PixiWater } from "../shower/PixiWater";
 import { judgeQuiz } from "../design/quiz-client";
 import { FogLayer } from "../fog/FogLayer";
+import { createFilth, filthAverage, type Filth } from "../camera/filth";
 import { activityForTurn, activityLabel } from "../design/activity";
 import { createFog, clearedFraction, type FogState } from "@vibecodemaxxing/game-engine";
 import { createDesignGame } from "../design/design-game";
@@ -120,6 +121,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const dockRef = useRef<HTMLElement>(null);
   const showerRef = useRef<HTMLDivElement>(null);
   const fogRef = useRef<FogState>(createFog());
+  const filthRef = useRef<Filth>(createFilth());
   const [fogHands, setFogHands] = useState(0);
 
   useEffect(() => {
@@ -137,17 +139,19 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
         return;
       }
       if (practice) {
-        const efficiency = 0.55 + 0.35 * Math.sin(now / 700);
-        game.ingestVision({ capturedAtMs: now, efficiency, confidence: 1, tracking: true });
+        // Practice shower: a fake body that gets clean over about 80% of the turn.
+        const elapsed = current.phase === "agent" ? (now - current.agentStartedAtMs) / (current.agentEndsAtMs - current.agentStartedAtMs) : 0;
+        game.ingestVision({ capturedAtMs: now, efficiency: Math.min(1, elapsed / 0.8), confidence: 1, tracking: true });
         return;
       }
       const frame = poseRef.current;
       if (!frame.capturedAtMs) return;
+      // Shower turns score the fraction of filth washed off so far (cumulative, like the fog).
       game.ingestVision({
         capturedAtMs: frame.capturedAtMs,
-        efficiency: isInWater() ? frame.scrub : 0,
-        confidence: frame.confidence,
-        tracking: frame.tracking,
+        efficiency: 1 - filthAverage(filthRef.current),
+        confidence: 1,
+        tracking: true,
       });
     }, 66);
     return () => window.clearInterval(timer);
@@ -187,12 +191,20 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const showering = state.phase === "agent";
   const activity = activityForTurn(state.phase === "typing" || state.phase === "agent" ? state.turnIndex : state.completedTurns.length);
   const fogTurn = showering && activity === "fog";
+  const showerTurn = showering && activity === "shower";
   const fogTurnKey = fogTurn ? state.turnIndex : -1;
   const [fogKey, setFogKey] = useState(-1);
   if (fogTurnKey !== fogKey) {
     // A new fog turn gets a fresh grid; leaving the turn resets it so nothing leaks forward.
     fogRef.current = createFog();
     setFogKey(fogTurnKey);
+  }
+  const showerTurnKey = showerTurn ? state.turnIndex : -1;
+  const [showerKey, setShowerKey] = useState(-1);
+  if (showerTurnKey !== showerKey) {
+    // Every shower turn starts fully filthy; when it ends the filth is gone, so the next mini-game starts clean.
+    filthRef.current = createFilth();
+    setShowerKey(showerTurnKey);
   }
   const live = state.phase === "agent" ? state.liveEfficiency : 0;
   const agentMs = state.phase === "agent" ? state.agentEndsAtMs - state.agentStartedAtMs : 0;
@@ -245,7 +257,8 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           className="aspect-auto size-full"
           onBodyX={water.setBodyX}
           bubbles={wet}
-          dirty={!practice}
+          dirty={showerTurn && !practice}
+          filth={filthRef.current}
           message={practice ? "Practice mode. The shower scores itself." : undefined}
         >
           <PixiWater active={showering && activity === "shower"} onMove={water.setWaterX} />
@@ -286,7 +299,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
             ) : (
               <>
                 <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />
-                <Meter label="This shower" value={live} onSpotlight={wet} />
+                <Meter label="Washed off" value={live} onSpotlight={wet} />
               </>
             )}
           </CardContent>

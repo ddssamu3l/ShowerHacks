@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { poseIndex, useCamera, type CameraStatus, type Point } from "./CameraProvider";
-import { createFilth, drawFilth, filthAverage, scrubFilth } from "./filth";
+import { createFilth, drawFilth, filthAverage, scrubFilth, type Filth } from "./filth";
 
 const statusCopy: Record<CameraStatus, string> = {
   idle: "Camera off",
@@ -21,6 +21,8 @@ interface CameraViewProps {
   bubbles?: boolean;
   /** Cover the player in filth that scrubbing under the water cleans off. */
   dirty?: boolean;
+  /** Filth state owned by the caller (the game resets it per shower turn and scores it). Defaults to an internal one. */
+  filth?: Filth;
   message?: string;
   onBodyX?: (x: number | null) => void;
 }
@@ -45,7 +47,7 @@ export function CameraMessage({ children }: { children: ReactNode }) {
   );
 }
 
-export function CameraView({ children, className, bubbles = false, dirty = false, message: override, onBodyX }: CameraViewProps) {
+export function CameraView({ children, className, bubbles = false, dirty = false, filth, message: override, onBodyX }: CameraViewProps) {
   const { stream, status, poseRef } = useCamera();
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -56,14 +58,17 @@ export function CameraView({ children, className, bubbles = false, dirty = false
   bubblesOnRef.current = bubbles;
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
-  const filthRef = useRef(createFilth());
+  const ownFilthRef = useRef(createFilth());
+  const externalFilthRef = useRef(filth);
+  externalFilthRef.current = filth;
+  const currentFilth = () => externalFilthRef.current ?? ownFilthRef.current;
   const [filthy, setFilthy] = useState<number | null>(null);
 
   useEffect(() => {
     if (!dirty) return;
     const timer = window.setInterval(() => {
-      const filth = filthRef.current;
-      setFilthy(filth.revealAt === null ? null : filthAverage(filth));
+      const state = currentFilth();
+      setFilthy(state.revealAt === null ? null : filthAverage(state));
     }, 200);
     return () => window.clearInterval(timer);
   }, [dirty]);
@@ -142,8 +147,9 @@ export function CameraView({ children, className, bubbles = false, dirty = false
       onBodyXRef.current?.(pose.bodyX === null ? null : map({ x: pose.bodyX, y: 0 }).x / width);
 
       if (dirtyRef.current) {
-        if (bubblesOnRef.current) scrubFilth(filthRef.current, pose.hands ?? [], dt, nowMs, map);
-        drawFilth(ctx, filthRef.current, pose.regions, map, nowMs, reduce);
+        const state = currentFilth();
+        if (bubblesOnRef.current) scrubFilth(state, pose.hands ?? [], dt, nowMs, map);
+        drawFilth(ctx, state, pose.regions, map, nowMs, reduce);
       }
 
       if (!pose.points) {

@@ -16,7 +16,6 @@ import {
   type VisionSample,
 } from "@vibecodemaxxing/contracts";
 import { scoreTyping, scoreDefinition, quizForTurn } from "@vibecodemaxxing/game-engine";
-import { activityForTurn } from "./activity";
 
 // Design stand-in for `createGame` from @vibecodemaxxing/game-engine. It follows the README's
 // timing rules closely enough to lay out every phase; swap it out when createGame lands.
@@ -26,28 +25,7 @@ function sampleValue(sample: VisionSample) {
   return sample.tracking && sample.confidence >= SCORING.minimumVisionConfidence ? sample.efficiency : 0;
 }
 
-function integrateShower(samples: VisionSample[], start: number, end: number) {
-  const duration = end - start;
-  let weighted = 0;
-  let qualifying = 0;
-  samples.forEach((sample, index) => {
-    const next = samples[index + 1]?.capturedAtMs ?? Infinity;
-    const until = Math.min(next, sample.capturedAtMs + SCORING.maximumVisionSampleAgeMs, end);
-    const covered = Math.max(0, until - Math.max(sample.capturedAtMs, start));
-    const value = sampleValue(sample);
-    weighted += value * covered;
-    if (sample.tracking && sample.confidence >= SCORING.minimumVisionConfidence) qualifying += covered;
-  });
-  const averageEfficiency = duration > 0 ? weighted / duration : 0;
-  return {
-    durationMs: duration,
-    averageEfficiency,
-    trackingCoverage: duration > 0 ? qualifying / duration : 0,
-    score: 100 * averageEfficiency,
-  };
-}
-
-function finalizeFog(samples: VisionSample[], start: number, end: number) {
+function finalizeCumulative(samples: VisionSample[], start: number, end: number) {
   const duration = end - start;
   const last = samples.at(-1);
   const cleared = last ? sampleValue(last) : 0;
@@ -213,9 +191,9 @@ export function createDesignGame({ session, nickname, inputMode, definitionQuiz,
       }
       const end = agentStartedAt + turn.agent.durationMs;
       if (current < end) return;
-      // Fog wipe is cumulative: the turn's score is the last reported cleared fraction,
-      // not the time average that the shower uses.
-      const shower = activityForTurn(turnIndex) === "fog" ? finalizeFog(samples, agentStartedAt, end) : integrateShower(samples, agentStartedAt, end);
+      // Both activities are cumulative: the shower scores the fraction of filth washed off,
+      // the fog wipe the fraction of the frame cleared. The last reported value is the turn score.
+      const shower = finalizeCumulative(samples, agentStartedAt, end);
       completed.push({ turnId: turn.id, typing: typingResult!, shower });
       samples = [];
       if (turnIndex === session.turns.length - 1) {
