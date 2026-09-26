@@ -39,8 +39,6 @@ npm run build
 
 The checks validate session JSON, check TypeScript, run game/web and vision tests, and build the production web app.
 
-**Copy/paste tip (macOS zsh):** use the commands above without trailing `#` comments. Interactive zsh can pass comment text as arguments, causing `Invalid project directory .../apps/web/#` or Vite to start on port 5173 with the wrong root. Stop that process with Ctrl+C and rerun the plain command. Run only one game dev server at a time; a second instance can hit a port or `.next/dev/lock` conflict.
-
 The web app uses the Next.js App Router and React; local TypeScript packages are compiled by Next.js. This follows the [official Next.js installation guidance](https://nextjs.org/docs/app/getting-started/installation). No database or separate backend process is needed. Definition quiz judging requires a server-side OpenAI API key (see Definition sprint below). The intended demo deployment is one persistent Node.js server with a writable local disk.
 
 ## Playable game UI
