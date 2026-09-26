@@ -17,6 +17,9 @@ import { Transcript } from "./Transcript";
 import { Editor } from "./Editor";
 import { PromptDock } from "./PromptDock";
 import { useInWater } from "./useInWater";
+import { FogLayer } from "../fog/FogLayer";
+import { activityForTurn, activityLabel } from "../design/activity";
+import { createFog, clearedFraction, type FogState } from "@vibecodemaxxing/game-engine";
 import { AnimatedNumber } from "../fx/AnimatedNumber";
 import { FlyingPoints, centerOf, type Flight } from "../fx/FlyingPoints";
 import { PointPops, type Pop } from "../fx/PointPop";
@@ -121,9 +124,15 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   useEffect(() => {
     const timer = window.setInterval(() => {
       const now = performance.now();
-      if (practice) {
+      const practiceState = game.getState();
+      if (practice && !(practiceState.phase === "agent" && activityForTurn(practiceState.turnIndex) === "fog")) {
         const efficiency = 0.55 + 0.35 * Math.sin(now / 700);
         game.ingestVision({ capturedAtMs: now, efficiency, confidence: 1, tracking: true });
+        return;
+      }
+      const current = game.getState();
+      if (current.phase === "agent" && activityForTurn(current.turnIndex) === "fog") {
+        game.ingestVision({ capturedAtMs: now, efficiency: clearedFraction(fogRef.current), confidence: 1, tracking: true });
         return;
       }
       const frame = poseRef.current;
@@ -152,7 +161,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
       next.push({ id: ++flightId.current, text: `+${Math.round(turn.typing.score)} typing`, from: typingFrom, to: typingTo, tone: "violet" });
     }
     if (showerFrom && showerTo) {
-      next.push({ id: ++flightId.current, text: `+${Math.round(turn.shower.score)} shower`, from: showerFrom, to: showerTo, tone: "water" });
+      next.push({ id: ++flightId.current, text: `+${Math.round(turn.shower.score)} ${activityLabel[activityForTurn(count - 1)].points}`, from: showerFrom, to: showerTo, tone: "water" });
     }
     setFlights((current) => [...current, ...next]);
     const score = state.score;
@@ -170,9 +179,20 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   }, [state, router, stop, later]);
 
   const showering = state.phase === "agent";
+  const activity = activityForTurn(state.phase === "typing" || state.phase === "agent" ? state.turnIndex : state.completedTurns.length);
+  const fogTurn = showering && activity === "fog";
+  const [fogHands, setFogHands] = useState(0);
+  const fogRef = useRef<FogState>(createFog());
+  const fogTurnKey = fogTurn && state.phase === "agent" ? state.turnIndex : -1;
+  const [fogKey, setFogKey] = useState(-1);
+  if (fogTurnKey !== fogKey) {
+    // New fog turn: fresh grid. Cleared on every phase change so leftover fog never leaks into the next turn.
+    fogRef.current = createFog();
+    setFogKey(fogTurnKey);
+  }
   const live = state.phase === "agent" ? state.liveEfficiency : 0;
   const agentMs = state.phase === "agent" ? state.agentEndsAtMs - state.agentStartedAtMs : 0;
-  const wet = showering && (water.inWater || practice);
+  const wet = showering && (activity === "fog" ? fogHands > 0 : water.inWater || practice);
 
   const liveRef = useRef(live);
   liveRef.current = live;
@@ -223,7 +243,8 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           bubbles={wet}
           message={practice ? "Practice mode. The shower scores itself." : undefined}
         >
-          <PixiWater active={showering} onMove={water.setWaterX} />
+          <PixiWater active={showering && activity === "shower"} onMove={water.setWaterX} />
+          {fogTurn && <FogLayer key={fogKey} fog={fogRef.current} poseRef={poseRef} active practice={practice} onHands={setFogHands} />}
         </CameraView>
         <Card
           ref={showerRef}
@@ -245,10 +266,20 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
                 showering && !wet && "animate-[nudge_1.6s_var(--ease-out)_infinite] text-signal",
               )}
             >
-              {showering ? (wet ? "Under the water. Scrub!" : "Get under the water.") : "Shower is off while you type."}
+              {showering
+                ? activity === "fog"
+                  ? wet ? "Wipe! Keep the hand moving." : "The camera fogged up. Wipe it with your hand."
+                  : wet ? "Under the water. Scrub!" : "Get under the water."
+                : activity === "fog" ? "Next up: wipe the camera." : "Shower is off while you type."}
             </p>
-            <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />
-            <Meter label="This shower" value={live} onSpotlight={wet} />
+            {activity === "fog" ? (
+              <Meter label="Cleared" value={live} onSpotlight={wet} />
+            ) : (
+              <>
+                <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />
+                <Meter label="This shower" value={live} onSpotlight={wet} />
+              </>
+            )}
           </CardContent>
         </Card>
       </section>

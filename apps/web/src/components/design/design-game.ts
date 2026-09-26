@@ -11,6 +11,7 @@ import {
   type VisionSample,
 } from "@vibecodemaxxing/contracts";
 import { scoreTyping as engineScoreTyping } from "@vibecodemaxxing/game-engine";
+import { activityForTurn } from "./activity";
 
 // Design stand-in for `createGame` from @vibecodemaxxing/game-engine. It follows the README's
 // timing and scoring rules closely enough to lay out every phase; swap it out when the engine lands.
@@ -43,6 +44,14 @@ function integrateShower(samples: VisionSample[], start: number, end: number) {
     trackingCoverage: duration > 0 ? qualifying / duration : 0,
     score: 100 * averageEfficiency,
   };
+}
+
+function finalizeFog(samples: VisionSample[], start: number, end: number) {
+  const duration = end - start;
+  const last = samples.at(-1);
+  const cleared = last ? sampleValue(last) : 0;
+  const covered = samples.length ? Math.min(duration, (last!.capturedAtMs - samples[0].capturedAtMs) + SCORING.maximumVisionSampleAgeMs) : 0;
+  return { durationMs: duration, averageEfficiency: cleared, trackingCoverage: duration > 0 ? covered / duration : 0, score: 100 * cleared };
 }
 
 const mean = (values: number[]) => (values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0);
@@ -145,7 +154,11 @@ export function createDesignGame({ session, nickname, inputMode, now = () => per
       }
       const end = agentStartedAt + turn.agent.durationMs;
       if (current < end) return;
-      completed.push({ turnId: turn.id, typing: typingResult!, shower: integrateShower(samples, agentStartedAt, end) });
+      // Fog wipe is cumulative: the turn's score is the last reported cleared fraction,
+      // not the time average that the shower uses.
+      const activity = activityForTurn(turnIndex);
+      const shower = activity === "fog" ? finalizeFog(samples, agentStartedAt, end) : integrateShower(samples, agentStartedAt, end);
+      completed.push({ turnId: turn.id, typing: typingResult!, shower });
       samples = [];
       if (turnIndex === session.turns.length - 1) {
         finish();
