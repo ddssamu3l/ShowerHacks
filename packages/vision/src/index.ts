@@ -4,7 +4,7 @@ export { createVision } from "./controller";
 export { createMockVision } from "./mock";
 export { ScrubDetector } from "./detector";
 export { ZONE_LABELS, ZONES } from "./types";
-export type { ArcadeVisionOptions, VisionFrame, WashEvent, WashZone, Landmark } from "./types";
+export type { ArcadeVisionOptions, VisionFrame, WashEvent, WashZone, Landmark, TrackerInfo } from "./types";
 export { PlacementDetector, PLACEMENT_ZONES, PLACEMENT_LABELS } from "./placement";
 export type { PlacementFrame, HandPlacement, PlacementZone, HandSide, DetectedHand } from "./placement";
 export { createTracking, createMockTracking, TrackingFrameBuilder, drawTrackingOverlay } from "./tracking";

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { TYPING_SCORING, type GameState, type KeystrokeEvent } from "@vibecodemaxxing/contracts";
 import { timeLimitMs } from "@vibecodemaxxing/game-engine";
+import { activityForTurn, activityLabel } from "../design/activity";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -224,7 +225,7 @@ function AgentCard({ state }: { state: Extract<GameState, { phase: "agent" }> })
   return (
     <Card className="gap-2 rounded-2xl px-4 py-3 ring-signal/40">
       <div className="flex items-baseline justify-between">
-        <span className="text-[13px] font-medium text-signal">Agent is working. Go scrub.</span>
+        <span className="text-[13px] font-medium text-signal">Agent is working. {activityLabel[activityForTurn(state.turnIndex)].verb}</span>
         <span className="font-mono text-lg text-signal tabular-nums">{(left / 1000).toFixed(1)}s</span>
       </div>
       <Progress value={100 * (1 - left / total)} className="h-1.5" indicatorClassName="bg-signal transition-none" />
