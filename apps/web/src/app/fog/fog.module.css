@@ -1,4 +1,4 @@
-.fog { z-index:2; }
+.fog { z-index:2; pointer-events:auto !important; cursor:crosshair; touch-action:none; }
 .mockBackdrop { position:absolute; inset:0; z-index:1; background:radial-gradient(ellipse at 50% 40%,#1c2a2e,#0d1416 70%); display:grid; place-items:end center; padding-bottom:96px; }
 .mockBackdrop span { color:#5f7178; font:9px monospace; letter-spacing:1.4px; }
 .switch { color:#a5b0b4; font:10px monospace; letter-spacing:.8px; text-decoration:none; border:1px solid #ffffff20; border-radius:4px; padding:9px 13px; }

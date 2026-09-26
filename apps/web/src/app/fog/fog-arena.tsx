@@ -202,6 +202,31 @@ export function FogArena() {
     }
   }, []);
 
+  // Ask for the camera as soon as the page opens; the button stays as a retry.
+  // Cleanup stops the controller so React StrictMode's double mount doesn't leave a zombie.
+  useEffect(() => {
+    void enableCamera();
+    return () => { session.current++; controller.current?.stop(); controller.current = null; };
+  }, [enableCamera]);
+
+  // Mouse / touch fallback: drag over the fogged preview to wipe. Works with or without the tracker.
+  const pointerWipe = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (phase !== "wiping" || event.buttons === 0) return;
+    const canvas = event.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    // object-fit: contain -> find the drawn area inside the element box.
+    const scale = Math.min(rect.width / canvas.width, rect.height / canvas.height);
+    const drawW = canvas.width * scale, drawH = canvas.height * scale;
+    const offX = (rect.width - drawW) / 2, offY = (rect.height - drawH) / 2;
+    const px = event.clientX - rect.left - offX, py = event.clientY - rect.top - offY;
+    if (px < 0 || py < 0 || px > drawW || py > drawH) return;
+    // The canvas is CSS-mirrored, so flip x back into raw video space.
+    const p = { x: 1 - px / drawW, y: py / drawH };
+    handsRef.current = toCursors([p], handsRef.current);
+    setTracking(true);
+    applyWipe(fogRef.current, { capturedAtMs: performance.now(), points: [p], tracking: true }, performance.now());
+  }, [phase]);
+
   const startRound = useCallback((nextMode: Mode) => {
     fogRef.current = createFog({ refogPerSecond: refog ? 0.03 : 0 });
     const now = performance.now();
@@ -254,7 +279,7 @@ export function FogArena() {
         <div className={base.grid}/>
         <video ref={videoRef} className={`${base.video} ${mode === "mock" ? base.hidden : ""}`} muted playsInline aria-label="Mirrored webcam preview"/>
         {mode === "mock" && phase !== "idle" && <div className={styles.mockBackdrop}><span>SIMULATED · NOT YOUR CAMERA</span></div>}
-        <canvas ref={fogCanvasRef} className={`${base.overlay} ${styles.fog} ${phase === "idle" ? base.hidden : ""}`} aria-label="Fog overlay"/>
+        <canvas ref={fogCanvasRef} className={`${base.overlay} ${styles.fog} ${phase === "idle" ? base.hidden : ""}`} aria-label="Fog overlay" onPointerDown={pointerWipe} onPointerMove={pointerWipe}/>
         <div className={base.cameraTop}>
           <span className={`${base.statusPill} ${tracking && phase === "wiping" ? base.statusGood : ""}`}><i/>{statusText}</span>
           {phase !== "idle" && <span className={styles.timer}><b style={{ width: `${timeFrac * 100}%` }}/><span>{phase === "done" ? "AGENT DONE" : `${secondsLeft}s`}</span></span>}
@@ -266,7 +291,9 @@ export function FogArena() {
           <h2>{initializing ? "WARMING UP THE MIRROR…" : "READY TO WIPE?"}</h2>
           <p>{initializing ? "Allow camera access. The hand tracker is loading." : "Enable the camera, then start a round. Wipe the fog with your hand like a bathroom mirror. Standing still does nothing."}</p>
           {status.state === "error" && <div className={base.error} role="alert">{status.message}</div>}
-          {initializing ? <button className={base.secondary} onClick={stopAll}>CANCEL</button> : <><button className={base.primary} onClick={() => void enableCamera()}><CameraIcon/> ENABLE CAMERA <span>↗</span></button><button className={base.demoButton} onClick={() => startRound("mock")}>TRY THE SIMULATED HAND <span>→</span></button></>}
+          {initializing ? <button className={base.secondary} onClick={stopAll}>CANCEL</button> : <><button className={base.primary} onClick={() => void enableCamera()}><CameraIcon/> {status.state === "error" ? "RETRY CAMERA" : "ENABLE CAMERA"} <span>↗</span></button><button className={base.demoButton} onClick={() => startRound("mock")}>TRY THE SIMULATED HAND <span>→</span></button></>}
+          {status.state === "error" && <button className={base.demoButton} onClick={() => startRound("camera")}>START WITHOUT TRACKER · MOUSE WIPE <span>→</span></button>}
+          {status.state === "error" && <span className={base.privacy}>Blocked? Click the camera icon in Chrome's address bar, allow, then retry. Or start a round anyway and wipe with the mouse.</span>}
           <span className={base.privacy}>Camera stays on this device. No video is uploaded.</span>
         </div>}
 
@@ -286,7 +313,7 @@ export function FogArena() {
         </div>}
 
         {phase === "wiping" && <div className={base.cameraBottom}>
-          <div><span className={base.smallLabel}>{mode === "mock" ? "DEMO SWEEP · NOT YOUR CAMERA" : "CLEARED"}</span><strong>{pct}%</strong><span className={base.actionHint}>{tracking ? "KEEP THE HAND MOVING" : "HAND NOT VISIBLE"}</span></div>
+          <div><span className={base.smallLabel}>{mode === "mock" ? "DEMO SWEEP · NOT YOUR CAMERA" : "CLEARED"}</span><strong>{pct}%</strong><span className={base.actionHint}>{tracking ? "KEEP THE HAND MOVING" : "HAND NOT VISIBLE · OR DRAG WITH THE MOUSE"}</span></div>
           <div className={base.progressRing} style={{ background: `conic-gradient(#d5ff69 ${cleared * 360}deg, #ffffff15 0deg)` }}><span>{pct}</span></div>
         </div>}
         <div className={base.cornerTL}/><div className={base.cornerBR}/>
