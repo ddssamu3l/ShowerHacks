@@ -50,13 +50,17 @@ type WipeSample = {
 };
 ```
 
+## Activity adapter
+
+`createFogActivity()` in `packages/game-engine/src/fog-activity.ts` implements the shared `ActivityAdapter` from `contracts/tracking.ts`. The tracker calls `evaluate(frame, context)` per frame; the adapter wipes with each tracked palm (or the index fingertip with `{ point: "indexTip" }`), resets the grid when the window changes, and freezes it at the deadline. `efficiency` in the returned `ActivitySample` is the cleared fraction so far. Because fog is cumulative, the turn score is `scoreFog(activity.fog)` at the deadline, not `ActivityScoreWindow`'s time average.
+
 ## Prototype
 
-`/fog` in the web app is a playable version: same Pose tracker as Scrub Fighter, fog canvas above the video, round timer, result screen, and a simulated hand for no-camera demos. `apps/web/src/app/fog/hand-points.ts` turns Pose landmarks (wrists 15/16, index tips 19/20) into `WipePoint`s. Both the video and the fog canvas are CSS-mirrored, so the engine works in raw video coordinates and nothing is flipped in code.
+`/fog` is a playable version built on the game's design system (`apps/web/src/components/fog/FogWipe.tsx`): `createTracking` from `@vibecodemaxxing/vision` for palms, fog canvas above the video, round timer, result card, a simulated hand for practice, and a mouse fallback. Camera coordinates are unmirrored; the video and the fog canvas are both CSS-mirrored, so nothing is flipped in the engine. The mouse fallback flips x itself.
 
 ## What changes in the shared contract (proposal, not done)
 
-- Vision already exposes landmarks through `onFrame`; `handPoints` can move from the page into `packages/vision` as the official adapter so the engine never sees landmark indices.
+- Nothing needed from vision: `createTracking` already provides palms and fingertips, and the adapter consumes `TrackingFrame` directly.
 - `GameOptions` gets `activity: "shower" | "fog"`. Default `shower`.
 - `TurnResult.shower` becomes `TurnResult.activity`, a union: `{ kind: "shower", ... }` or `{ kind: "fog", clearedFraction, score }`. Leaderboard boards are keyed by session, version and scoring version already; add `activity` to the key so shower and fog runs do not compete on one board.
 - The `agent` state exposes `liveActivity: number` in place of `liveEfficiency` so the UI can show a live percentage for either mode.

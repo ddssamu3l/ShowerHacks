@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { FogArena } from "./fog-arena";
+import { FogWipe } from "@/components/fog/FogWipe";
 
-export const metadata: Metadata = { title: "Fog Wipe · Activity 02" };
-export default function FogPage() { return <FogArena />; }
+export const metadata: Metadata = { title: "Fog Wipe · Vibecodemaxxing" };
+
+export default function FogPage() {
+  return <FogWipe />;
+}
