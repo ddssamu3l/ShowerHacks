@@ -1,0 +1,52 @@
+{
+  "$schema": "../../packages/contracts/session.schema.json",
+  "schemaVersion": 1,
+  "id": "ship-it",
+  "sessionVersion": 1,
+  "title": "Ship It, Not Sink It",
+  "description": "One button. Three prompts. An alarming amount of plumbing.",
+  "turns": [
+    {
+      "id": "add-button",
+      "prompt": "Add a button that says Ship it.",
+      "agent": {
+        "durationMs": 12000,
+        "events": [
+          { "id": "first-plan", "atMs": 0, "type": "assistant_message", "text": "A simple button. I will begin by understanding the entire water cycle." },
+          { "id": "first-call", "atMs": 2000, "type": "tool_call", "tool": "terminal", "input": "npm install emotional-support-plumber" },
+          { "id": "first-result", "atMs": 4500, "type": "tool_result", "callId": "first-call", "output": "Added 4,812 dependencies. Your sink is now a peer dependency.", "status": "success" },
+          { "id": "first-file", "atMs": 8000, "type": "file_update", "path": "src/Button.tsx", "language": "tsx", "content": "export function Button() {\n  return <button>Sink it</button>;\n}\n" },
+          { "id": "first-done", "atMs": 12000, "type": "assistant_message", "text": "Done. The button says Sink it. This is a nautical synonym." }
+        ]
+      }
+    },
+    {
+      "id": "fix-button",
+      "prompt": "The button says Sink it. Change it to Ship it and stop installing plumbing.",
+      "agent": {
+        "durationMs": 16000,
+        "events": [
+          { "id": "second-plan", "atMs": 0, "type": "assistant_message", "text": "Understood. I have identified the ocean as the root cause." },
+          { "id": "second-call", "atMs": 2500, "type": "tool_call", "tool": "terminal", "input": "npm run refactor:ocean" },
+          { "id": "second-result", "atMs": 6500, "type": "tool_result", "callId": "second-call", "output": "FAIL: Pacific Ocean has 9,000,000 circular dependencies. Atlantic Ocean is deprecated.", "status": "error" },
+          { "id": "second-file", "atMs": 11000, "type": "file_update", "path": "src/Button.tsx", "language": "tsx", "content": "export function Button() {\n  return <button disabled>Ship it (awaiting coast guard approval)</button>;\n}\n" },
+          { "id": "second-done", "atMs": 16000, "type": "assistant_message", "text": "The wording is improved. The button is disabled until the ocean finishes compiling." }
+        ]
+      }
+    },
+    {
+      "id": "stop-ocean",
+      "prompt": "DO NOT REFACTOR THE OCEAN. JUST MAKE THE BUTTON SAY SHIP IT.",
+      "agent": {
+        "durationMs": 10000,
+        "events": [
+          { "id": "third-plan", "atMs": 0, "type": "assistant_message", "text": "Making the smallest possible change. Emotionally, this is difficult for me." },
+          { "id": "third-file", "atMs": 3500, "type": "file_update", "path": "src/Button.tsx", "language": "tsx", "content": "export function Button() {\n  return <button>SHIP IT</button>;\n}\n" },
+          { "id": "third-call", "atMs": 5500, "type": "tool_call", "tool": "terminal", "input": "npm test -- button" },
+          { "id": "third-result", "atMs": 8000, "type": "tool_result", "callId": "third-call", "output": "PASS: button says SHIP IT. Oceans modified: 0. Plumbers retained: 1.", "status": "success" },
+          { "id": "third-done", "atMs": 10000, "type": "assistant_message", "text": "SHIPPED. One button. No ocean changes. The plumber would like a LinkedIn recommendation." }
+        ]
+      }
+    }
+  ]
+}

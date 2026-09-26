@@ -1,0 +1,21 @@
+{
+  "name": "vibecodemaxxing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "dev": "npm run dev --workspace @vibecodemaxxing/web",
+    "build": "npm run validate:sessions && npm run build --workspace @vibecodemaxxing/web",
+    "start": "npm run start --workspace @vibecodemaxxing/web",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace @vibecodemaxxing/web",
+    "validate:sessions": "tsx scripts/validate-sessions.ts",
+    "schema:generate": "tsx scripts/generate-session-schema.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

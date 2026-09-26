@@ -1,0 +1,6 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #111218; color: #faf8ef; }
+body { margin: 0; }
+main { min-height: 100svh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding: clamp(24px, 8vw, 120px); }
+h1 { font-size: clamp(2.75rem, 8vw, 7rem); line-height: 1; letter-spacing: -0.06em; margin: 16px 0; }
+p { font-size: 1.15rem; color: #bcbeca; }
+.eyebrow { color: #d9ff76; }

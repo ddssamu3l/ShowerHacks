@@ -1,0 +1,237 @@
+# Vibecodemaxxing
+
+A hackathon game about typing increasingly unhinged prompts while a fake coding agent makes increasingly stupid mistakes. Type while the agent waits; pretend to shower while it works. Highest score wins.
+
+This repository is the team scaffold and shared contract. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are provided. **Gameplay, camera inference, and leaderboard routes still need to be implemented by their owners below.** There are no real LLM calls or executed agent commands.
+
+## Run the scaffold
+
+Use Node.js 22+ and npm. From the repository root:
+
+```sh
+npm ci
+npm run dev                 # http://localhost:3000
+npm run validate:sessions   # validate every content/sessions/*.json
+npm run typecheck           # shared packages, scripts, and web app
+npm run build               # session validation + production Next.js build
+```
+
+The web app uses the Next.js App Router and React; local TypeScript packages are compiled by Next.js. This follows the [official Next.js installation guidance](https://nextjs.org/docs/app/getting-started/installation). No database, API key, or separate backend process is needed. The intended demo deployment is one persistent Node.js server with a writable local disk.
+
+## Four owners, four workstreams
+
+| Owner | Owns | Deliverable and handoff |
+| --- | --- | --- |
+| **UI teammate** | `apps/web/src/app/` except `api/`; `apps/web/src/components/`; client hooks; styling | Nickname/session selection, camera preview and efficiency on the left, mock coding transcript/editor and prompt input on the right, score display, results and leaderboard. Fetch sessions, create the engine and vision controller, render engine snapshots, and submit the final result to the leaderboard API. |
+| **Session teammate** | `content/sessions/*.json` | Funny, fully scripted sessions that pass validation. Each turn supplies one exact target prompt, agent duration, timestamped messages/tool activity/file edits, and its final response. No app code or scoring formulas needed. |
+| **Game-state teammate** | `packages/game-engine/`; `apps/web/src/app/api/`; `apps/web/src/lib/server/` | Implement the state machine, replay scheduler, typing/shower scoring, and results. Implement session-loading and disk-leaderboard APIs. Deliver `createGame: GameFactory` and the API responses defined below. Keep the engine independent of React and the camera model. |
+| **PM + vision (us)** | `packages/vision/`; `apps/web/public/models/`; shared contract coordination | Implement browser camera/model setup, scrub-efficiency calibration, preview/optional overlay, and timestamped samples. Deliver `createVision: VisionFactory` and `createMockVision: VisionFactory`. Vision estimates efficiency; the engine converts it to points. |
+
+Everyone imports shared types from `@vibecodemaxxing/contracts`. Coordinate changes to that package, root configuration, dependency lockfile, and this README before changing a shared interface. No teammate needs another teammate's implementation to start working against the types.
+
+```text
+apps/web/
+  src/app/                 # UI pages/layout; api/ belongs to game-state owner
+    api/sessions/          # GET list + GET [id] (to implement)
+    api/leaderboard/       # GET standings + POST result (to implement)
+  src/components/          # React components
+  src/lib/server/          # Session loader and serialized disk store (to implement)
+  public/models/           # Vision model assets, if needed
+packages/
+  contracts/
+    src/session.ts         # Runtime Zod schema + inferred Session/AgentEvent types
+    src/game.ts            # GameController, GameState, GameResult
+    src/vision.ts          # VisionController, VisionSample, VisionStatus
+    src/leaderboard.ts     # HTTP request/response types
+    src/constants.ts       # Versioned scoring defaults
+    session.schema.json    # Generated JSON Schema for editors; do not hand-edit
+  game-engine/src/index.ts # Reserved export: createGame (not implemented yet)
+  vision/src/index.ts      # Reserved exports: createVision, createMockVision
+content/sessions/
+  ship-it.json             # Copy this complete three-turn example
+scripts/                   # Session/schema tooling
+data/                      # Runtime leaderboard.json; gitignored
+README.md                  # The single team handoff document
+```
+
+## Gameplay and timing contract
+
+```text
+Nickname + session + camera ready
+               |
+             ready -- start() --> typing -- Enter --> agent
+                                     ^                  |
+                                     |  more turns      |
+                                     +------------------+
+                                                        | last turn ends
+                                                     finished
+                                                        |
+                                             save score + leaderboard
+```
+
+1. UI trims the nickname and requires 1–24 Unicode code points. Load and validate the chosen session and prepare the camera before enabling Start. A mock vision mode supports development; its runs cannot enter the real leaderboard.
+2. `createGame({ session, nickname, inputMode })` returns a controller in `ready`. `start()` immediately opens turn 0 in `typing` and records its typing start time. Optional countdowns happen **before** `start()`.
+3. During `typing`, show the predetermined `targetPrompt` beside an empty input. Enter calls `submitPrompt(text)`. Every nonempty submission is accepted even if inaccurate; accuracy affects points. The transcript records the player's actual submitted text. The next scripted agent turn is identical regardless of mistakes.
+4. On submission, the engine scores typing, disables input by entering `agent`, and begins that turn's replay/shower interval. Events become visible at `agentStartedAtMs + event.atMs`. Events at the same offset retain array order. Tool activity and file edits are only display data: never execute commands or write the mock files to disk.
+5. At `agentStartedAtMs + durationMs`, reveal the final response, finalize this turn's shower score, and immediately enter the next `typing` phase. Set `typingStartedAtMs` to that same deadline. There is no Continue button, transition delay, or UI animation that postpones the clock. Clear/focus the input on this transition; reaction time counts.
+6. At the last agent deadline, show its final response and enter `finished` with the complete result. UI stops vision, POSTs the result once, and shows the returned leaderboard and rank. Keep the result visible with a retry action if saving fails.
+
+The engine is the **only authority for phase transitions, replay visibility, and scoring**. The UI may refresh timer displays using `performance.now()`, but must not advance the game. The vision module knows nothing about sessions or phases.
+
+Use the browser's monotonic `performance.now()` clock everywhere except human-readable result timestamps. Compare against absolute deadlines; don't count timer ticks. Timer callbacks and `start`, `submitPrompt`, and `ingestVision` first catch up overdue replay events and phase transitions so a throttled browser cannot extend shower time. Keep `getState` and subscription setup free of side effects. Once an agent finishes, catch-up stops in `typing` until the player submits. No pause mechanic in v1. Navigation/restart disposes the old controller and creates a new one.
+
+## Session JSON: content → engine
+
+Canonical schema: [session.ts](packages/contracts/src/session.ts). Complete example: [ship-it.json](content/sessions/ship-it.json). One file per session, named `<id>.json`; IDs are lowercase kebab-case. `sessionVersion` is the content revision, while `schemaVersion: 1` describes the file format. Increment `sessionVersion` whenever prompts, events, or durations change so scores from different challenges do not mix.
+
+A minimal valid session:
+
+```json
+{
+  "$schema": "../../packages/contracts/session.schema.json",
+  "schemaVersion": 1,
+  "id": "one-button",
+  "sessionVersion": 1,
+  "title": "One Button",
+  "description": "Surely the agent can handle one button.",
+  "turns": [{
+    "id": "make-button",
+    "prompt": "Make a button.",
+    "agent": {
+      "durationMs": 5000,
+      "events": [
+        { "id": "thinking", "atMs": 0, "type": "assistant_message", "text": "First, I will rewrite CSS." },
+        { "id": "done", "atMs": 5000, "type": "assistant_message", "text": "Done. It is a checkbox." }
+      ]
+    }
+  }]
+}
+```
+
+| Event `type` | Additional fields | UI behavior |
+| --- | --- | --- |
+| `assistant_message` | `text` | Append an agent message. |
+| `tool_call` | `tool`, `input` (both strings) | Display a pending simulated tool invocation. |
+| `tool_result` | `callId`, `output`, `status: "success" \| "error"` | Complete the earlier call whose event ID equals `callId`. |
+| `file_update` | `path`, `language`, `content` | Replace that mock editor file's entire displayed contents. Files begin empty; updates persist across turns. |
+
+Every event also has `id` and integer `atMs`, relative to the start of **its own agent turn**, not game start. A session has 1–20 turns, each with a nonempty single-line prompt (up to 500 UTF-16 code units) and a 1,000–120,000 ms agent duration. Prefer short prompts and 8–20 second agent turns for the demo.
+
+Validation requires unique turn IDs, event IDs unique across the whole session, nondecreasing offsets within the duration, exactly one result for each earlier tool call in the same turn, and a final `assistant_message` **at exactly `durationMs` in every turn**. The last turn's last message is the game-ending response. No separate completion flag is needed.
+
+Run `npm run validate:sessions` after every content edit. Editor JSON Schema checks shape; the command additionally checks event ordering and references. If the shared schema changes, run `npm run schema:generate` and commit the generated file. Runtime session-loading routes must also call `sessionSchema.parse()` rather than trusting a TypeScript cast.
+
+## Vision IO: camera → engine
+
+Canonical interface: [vision.ts](packages/contracts/src/vision.ts). Browser-only implementation in `packages/vision`; UI supplies a mounted `<video muted playsInline>` and an optional overlay canvas. Vision owns camera permission, stream acquisition/attachment, model initialization, inference, and cleanup. Never request a camera at module import time.
+
+```ts
+type VisionSample = {
+  capturedAtMs: number; // performance.now() at frame capture
+  efficiency: number;   // 0..1: calibrated speed/quality of scrubbing
+  confidence: number;   // 0..1: confidence in that estimate
+  tracking: boolean;   // Is a usable person/body being tracked?
+};
+```
+
+Aim for 10–20 samples/second. Emit zero efficiency with `tracking: false` when no usable body is detected; emit status errors separately for camera/model failures. Avoid treating camera shake as scrubbing. Calibration, body regions, and model/library choice are owned by vision; the external scale stays 0–1. Images remain local to the browser; callbacks carry numeric estimates only.
+
+`createVision(options)` returns `{ start(): Promise<void>, stop(): void }`. `start()` resolves when camera/model are ready and rejects on initialization failure. `onStatus` reports `idle`, `initializing`, `ready`, `stopped`, or an error with a code/message. `stop()` releases camera tracks and cancels inference, including a pending startup. Repeated stop calls are safe, and no sample callbacks may fire after stopping. Use a fresh controller to restart. The UI owns phase/status text; vision draws only the optional tracking overlay.
+
+`createMockVision` implements the same interface and emits a deterministic sample stream without requesting a camera; it can ignore the supplied preview element. The UI sets `inputMode: "mock"` on the engine for such a run. This lets the UI/game teammates develop before the model is ready.
+
+The UI forwards every sample to `game.ingestVision(sample)`. The engine ignores samples outside `agent`, samples captured outside the current agent interval, future timestamps, nonfinite/out-of-range numbers, out-of-order/duplicate timestamps, and samples already over 250 ms old on arrival. Reset sample history on each agent start; a prior typing phase/turn never contributes.
+
+## Scoring v1: owned by the engine
+
+Defaults live in [constants.ts](packages/contracts/src/constants.ts). Results include `scoringVersion: "v1"`; bump it if these rules change. Keep component values unrounded until computing the final integer score.
+
+**Typing per turn:** compare submitted and target strings exactly, including case, spaces, and punctuation; do not trim or normalize them. Count Unicode code points (`Array.from(text)`) and compute Levenshtein edit distance `d` over those code points. Let `L` be target length, `S` submitted length, and `t` seconds since entering `typing`, including reaction time.
+
+```text
+accuracy = max(0, 1 - d / max(L, S))
+speed    = min(1, L / (5 * max(t, 0.25)))
+typing   = 100 * accuracy² * speed
+```
+
+At five target characters/second with perfect accuracy, typing earns 100. A wrong prompt can progress the story but loses accuracy points. The UI disables paste/drop into the prompt input for the demo and ignores Enter during IME composition; this is an honor-system local game.
+
+**Showering per turn:** integrate efficiency over the **entire** scheduled agent duration, then divide by that duration. For each accepted sample, its effective value is `efficiency` when `tracking && confidence >= 0.5`, otherwise zero. Hold that value from its capture timestamp until the next accepted sample, its timestamp + 250 ms, or the agent deadline, whichever comes first. All uncovered time, including before the first sample and camera dropouts, contributes zero. Use time weighting, not an arithmetic mean of samples. A low-confidence/no-tracking sample immediately ends the previous held reading.
+
+```text
+averageEfficiency = sum(effectiveEfficiency * coveredMilliseconds) / durationMs
+shower            = 100 * averageEfficiency
+trackingCoverage  = qualifyingCoveredMilliseconds / durationMs
+```
+
+Late samples arriving after the turn has ended cannot change its result. Faster sample delivery must not create extra points. An efficiency of 0.8 continuously maintained earns 80 for either a 10-second or a 30-second turn; the duration itself is not a bonus or penalty. `liveEfficiency` uses the same gating/250 ms expiry for UI feedback.
+
+**Run total:** every completed turn has equal weight, regardless of prompt length or agent duration.
+
+```text
+typingScore = mean(turn.typing.score)       # 0..100
+showerScore = mean(turn.shower.score)       # 0..100
+totalScore  = round(100 * (0.5 * typingScore + 0.5 * showerScore))
+```
+
+Maximum score: **10,000**. The live `state.score` summarizes only completed turns (zero before the first completion); the active turn separately exposes `typingResult` and `liveEfficiency` during `agent`.
+
+## Engine IO: engine → UI
+
+Canonical interfaces: [game.ts](packages/contracts/src/game.ts). The engine package will export `createGame: GameFactory`; the vision package will export `createVision: VisionFactory`. The following is the integration target, **not implemented wiring in the starter**:
+
+```ts
+const game = createGame({ session, nickname, inputMode: "camera" });
+const vision = createVision({
+  video: videoElement,
+  overlay: canvasElement,
+  onSample: (sample) => game.ingestVision(sample),
+  onStatus: setVisionStatus,
+});
+renderState(game.getState());
+const unsubscribe = game.subscribe(renderState);
+await vision.start();              // Enable Start after this resolves.
+// Start button: game.start()
+// Enter: game.submitPrompt(inputText)
+// Finish: vision.stop(), save game.getState().result once
+// Unmount/restart: unsubscribe(), game.dispose(), vision.stop()
+```
+
+The engine generates one stable `runId` (UUID) per controller. `GameState.phase` is `ready | typing | agent | finished`. Every snapshot includes nickname, session identity, input mode, transcript, completed turn results, and the current aggregate score. Phase-specific fields are discriminated TypeScript unions: only `typing` exposes `targetPrompt`, only `agent` exposes agent timestamps/live efficiency, and only `finished` exposes `result`.
+
+`getState()` returns the same immutable snapshot reference until an update. `subscribe(listener)` returns an unsubscribe function and emits on changes, not at subscription time. `submitPrompt` returns `true` only when accepted in `typing`; double Enter and submissions during an agent turn have no effect. `start` is only effective in `ready`. `dispose` is idempotent and stops future updates/actions. Validate session/nickname when constructing a controller; invalid options throw before any timer is started. Treat options/session data as read-only. UI owns transient draft input, focus, sound, and presentation; all scored time and results belong to the engine.
+
+## Session and leaderboard HTTP APIs
+
+The **game-state owner** implements these Next.js route handlers and Node-only filesystem helpers. Shared request/response types are in [leaderboard.ts](packages/contracts/src/leaderboard.ts). UI owns the calls. Use `export const runtime = "nodejs"` and disable caching for leaderboard reads. Keep `fs` imports out of client components and shared browser packages.
+
+| Method and path | Request | Success body |
+| --- | --- | --- |
+| `GET /api/sessions` | None | `{ sessions: SessionSummary[] }`, sorted by ID |
+| `GET /api/sessions/:id` | Session ID | `{ session: Session }` |
+| `GET /api/leaderboard?sessionId=ship-it&sessionVersion=1&scoringVersion=v1` | All three board keys required | `{ entries: LeaderboardEntry[] }`, top 10 |
+| `POST /api/leaderboard` | JSON `{ result: GameResult }` | `{ entry: LeaderboardEntry, rank: number, entries: LeaderboardEntry[] }`, HTTP 201 on first save, 200 on identical retry |
+
+`SessionSummary` contains `id`, `sessionVersion`, `title`, `description`, and `turnCount`. `LeaderboardEntry` contains `runId`, `nickname`, the three board keys, `typingScore`, `showerScore`, `totalScore`, and server-assigned ISO `completedAt`. Only finished camera-mode runs can be saved; reject mock runs. Error bodies use `{ error: { code, message } }`: 400 for invalid input, 404 for unknown session/version, 409 for a reused run ID with different contents, and 500 for load/write failure. Return a generic error message rather than filesystem details.
+
+Validate POST bodies at runtime: require a valid nickname/run UUID, known session/version and scoring version, `inputMode: "camera"`, one result for every session turn in order, matching agent durations, and finite values within the documented ranges. Recompute typing scores from submitted text/durations and the final aggregate from turn data; do not trust posted totals. The camera estimate itself is client-reported, appropriate for a local hackathon leaderboard. A score/result must be complete; do not save intermediate snapshots.
+
+Store all runs in **`<repo>/data/leaderboard.json`**, with this versioned format; create it on the first save:
+
+```json
+{ "schemaVersion": 1, "entries": [] }
+```
+
+Each disk entry is exactly `{ result: GameResult, entry: LeaderboardEntry }`, as defined by `StoredLeaderboardRun` and `LeaderboardStore`. Retain the original validated result for idempotency checks and use the server receipt timestamp in the public `entry`. Expose only `LeaderboardEntry` fields over HTTP. For an identical retry, compare result fields by `runId` (independent of JSON key order) and preserve the first server timestamp. Rank all runs within the exact `(sessionId, sessionVersion, scoringVersion)` board, taking the top 10 for response `entries`; repeated nicknames are allowed. Sort by total score descending, then server timestamp ascending, then run ID ascending. `rank` is the saved run's position among **all** runs, even when outside the top 10.
+
+The web server normally runs with `apps/web` as its working directory; centralize repository path resolution in `src/lib/server/` rather than accidentally creating `apps/web/data`. Session IDs must match the schema's slug rule, and paths must come from the enumerated content files. Serialize read-modify-write operations in one Node process and write via a temporary file plus rename in the same directory. A missing file means an empty board; a corrupt file is an error and must not be silently overwritten. Keep actual scores out of git. Use a persistent local/self-hosted server for the demo: an ephemeral serverless filesystem will not preserve this leaderboard.
+
+## Integration order and done criteria
+
+1. **Content:** copy the sample, write the escalating story, run the validator. The existing three-turn sample is already enough for engine/UI work.
+2. **Game:** implement the controller with synthetic samples and an injected clock; verify the `typing → agent → typing → finished` loop, deadline boundaries, stale/missing samples, exact/mistyped prompts, and duration-normalized scoring. Build session APIs and the disk store.
+3. **Vision:** implement the mock controller first so teammates can wire callbacks, then replace its readings with calibrated camera inference without changing the interface.
+4. **UI:** compose the screen and onboarding, wire snapshots/events, add the final save/retry/leaderboard flow. Show camera status and mock-mode labeling. Keep session loading and camera startup outside scored time.
+5. **Together:** run a full sample session, check that the last shower interval counts and the final response stays visible, verify the next typing timer starts immediately, save a score, restart the server, and confirm it remains on the board. Retry the same save and confirm no duplicate. Run `npm run validate:sessions`, `npm run typecheck`, and `npm run build` before merging.
+
+Suggested branches: `feat/ui`, `feat/sessions`, `feat/game-engine`, and `feat/vision`. Each owner works in their directories; agree on contract changes first and update this README plus the shared types together. Install dependencies from the root with `npm install <package> --workspace <workspace-name>` and commit the lockfile with dependency changes.
