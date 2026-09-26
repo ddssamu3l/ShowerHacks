@@ -2,7 +2,7 @@
 
 A hackathon game about typing increasingly unhinged prompts while a fake coding agent makes increasingly stupid mistakes. Type while the agent waits; pretend to shower while it works. Highest score wins.
 
-This repository contains the team scaffold, shared contract, and a working **Scrub Fighter webcam prototype at `/vision`**. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are also provided. **The main scripted gameplay and leaderboard routes still need implementation by their owners below.** There are no real LLM calls or executed agent commands.
+This repository contains the team scaffold, a **shared body/hand/finger tracking framework**, the **Soap Rush timed challenge at `/vision`**, a **hand-placement viewer at `/vision/placement`**, and the earlier **Scrub Fighter prototype at `/vision/arcade`**. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are also provided. **The main scripted gameplay and leaderboard routes still need implementation by their owners below.** There are no real LLM calls or executed agent commands.
 
 ## Run the scaffold
 
@@ -18,28 +18,102 @@ npm run build               # session validation + production Next.js build
 
 The web app uses the Next.js App Router and React; local TypeScript packages are compiled by Next.js. This follows the [official Next.js installation guidance](https://nextjs.org/docs/app/getting-started/installation). No database, API key, or separate backend process is needed. The intended demo deployment is one persistent Node.js server with a writable local disk.
 
-## Scrub Fighter webcam prototype
+## Webcam prototypes
 
 ```sh
 npm ci
 npm run vision:dev         # Prepare local model assets + start Next.js
 # Open http://localhost:3000/vision
-npm run test:vision        # Motion-detection and arcade-scoring tests
+npm run test:vision        # Hand placement, motion detection, and scoring tests
 ```
 
-Click **Enable Camera**, allow webcam access, and frame your head, shoulders, and arms. Rub your chest, opposite upper arm, hair, or an armpit with that arm raised. Repeated rubbing lands hits; changing zones chains combos. The overlay marks body joints, candidate wash zones, and progress toward the next hit. Enable sound for arcade bleeps. Stop the camera to adjust sensitivity, then restart. **Try the animated demo** runs synthetic movement through the same detector with no camera; it is explicitly labeled simulated.
+At **`/vision`**, enable your camera, frame your head/shoulders/hands, then start **Soap Rush**. After a three-second countdown, eight body targets run for **three seconds each** (24 seconds total), with the next target previewed. Scrub the lime outline back and forth or in circles. Holding still or scrubbing elsewhere earns zero. The head and chest regions include the sides. Each hand is tracked independently; either can scrub, and two hands do not double the maximum rate. **Watch a simulated run** exercises the same tracking, activity adapter, and scoring code using generated landmarks.
 
-This is a standalone, continuous free-play concept with point popups, ranks, a 6.5-second combo window, a multiplier capped at ×2.5, and repeated-zone rewards falling to 65%, 30%, then 15%. Alternating just two zones caps the multiplier at ×1.5. Scores are local to the current run and are not submitted to the leaderboard. The production game's normalized scoring contract below is unchanged; its owner can integrate wash events and decide how to incorporate combos into the timed game.
+Each round earns `round(1000 × averageEfficiency × roundMultiplier)`. Efficiency is averaged over the **entire** window, including reaction time, missed targets, and tracking gaps. At least 35% quality continues the combo; each prior successful round adds ×0.25 to the next round, capped at ×2.5. A miss breaks the chain after that round; it still earns its partial quality points at the multiplier established when the round began. Switching targets is automatic at the exact deadline. The final screen shows total points, each round, and best combo. These are prototype points, not main-game/leaderboard scores. The setup also offers five- or eight-second windows, normalized to the same per-round base maximum.
+
+At **`/vision/placement`**, simply place a hand on your shoulder, chest, hair, face, opposite upper arm, or raised armpit. No rubbing is required. Cyan is your left hand; pink is your right. Both hands can highlight different regions or share one. Dashed markers explicitly indicate a fallback estimate from the pose model. This remains a score-free tracking lab.
+
+The earlier **`/vision/arcade`** page still runs the motion-based Scrub Fighter prototype. Rub your chest, opposite upper arm, hair, or an armpit with that arm raised. Repeated rubbing lands hits; changing zones chains combos. Enable sound for arcade bleeps. Stop the camera to adjust sensitivity, then restart. **Try the animated demo** runs synthetic movement through the same detector with no camera.
+
+The arcade page is a standalone, continuous free-play concept with point popups, ranks, a 6.5-second combo window, a multiplier capped at ×2.5, and repeated-zone rewards falling to 65%, 30%, then 15%. Alternating just two zones caps the multiplier at ×1.5. Scores are local to the current run and are not submitted to the leaderboard. The production game's normalized scoring contract below is unchanged; its owner can integrate wash events and decide how to incorporate combos into the timed game.
 
 Implementation and integration:
 
-- `packages/vision/src/controller.ts` implements `createVision`; a classic Web Worker runs MediaPipe Pose Full away from the typing/UI thread. It attempts GPU inference, then CPU if GPU initialization fails. Only one frame is in flight, at up to 20 Hz. Capture timestamps come from the main browser clock. Camera tracks and the worker are released on stop, including cancelled startup.
+- `packages/vision/src/controller.ts` implements `createVision`; a classic Web Worker runs MediaPipe Pose Full and, in placement mode, Hand Landmarker with up to two hands away from the typing/UI thread. It attempts GPU inference, then CPU if GPU initialization fails. Only one frame is in flight, at up to 20 Hz. Capture timestamps come from the main browser clock. Camera tracks and the worker are released on stop, including cancelled startup.
+- `placement.ts` classifies each palm independently against shoulder-relative body regions, assigns anatomical left/right using pose wrists, and uses light position smoothing to reduce jitter. It requires no movement. Pass `mode: "placement"` and `onPlacement(frame)` to `createVision` or `createMockVision`; each `PlacementFrame` includes `hands` with `side`, `visible`, normalized `point`, `zone`, `source`, and landmarks, plus body-region outlines. `source` distinguishes hand-model detection from pose fallback. Placement mode emits zero scoring efficiency and no wash events. It estimates overlap in the 2D camera view, not physical contact; fully hidden hands may be missed or estimated.
 - `detector.ts` works on landmarks in a shoulder-relative coordinate system. It requires proximity plus sustained back-and-forth/circular motion, ignores tiny jitter and pose jumps, and prefers the moving hand over a resting hand. Detection estimates visible overlap, not physical skin contact. Framing, fast movement, and occlusion affect accuracy; tune with real webcam play.
 - `createVision` and `createMockVision` remain compatible with `VisionFactory`. Their optional `ArcadeVisionOptions.onFrame(frame)` exposes zone/progress/landmarks for feedback, and `onWash(event)` emits `{ zone, capturedAtMs, intensity, confidence }`. Types are exported from `@vibecodemaxxing/vision`. The existing `onSample` callback still emits the original `VisionSample` contract, with raw scrub intensity as efficiency and no combo multiplier. The main engine must gate wash events by agent phase and own its combo state.
 - `packages/vision/src/arcade.ts` contains the prototype's separate scoring reducer (`@vibecodemaxxing/vision/arcade`). `apps/web/src/app/vision/` owns only the temporary playground UI. Main-game pages and engine implementations are independent.
-- `npm run vision:prepare` downloads the versioned [MediaPipe Pose Full model](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker), copies WASM files from the pinned npm dependency, and bundles `pose.worker.ts`. Generated assets live in gitignored `apps/web/public/vision-assets/`. Rerun after worker/dependency changes, and before deploying the vision page. Once prepared, the prototype loads assets locally and uploads no camera frames. The first preparation needs internet access.
+- `npm run vision:prepare` downloads the versioned [MediaPipe Pose Full](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker) and [Hand Landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker) models, copies WASM files from the pinned npm dependency, and bundles `pose.worker.ts`. Generated assets live in gitignored `apps/web/public/vision-assets/`. Rerun after worker/dependency changes, and before deploying the vision pages. Once prepared, the prototypes load assets locally and upload no camera frames. The first preparation needs internet access.
 
 Browser target: a current Chromium-based desktop browser, including Arc/Chrome, on localhost or HTTPS. The worker uses `OffscreenCanvas` and transferable `ImageBitmap`. The model and runtime are Apache-2.0 licensed; the worker bundle retains dependency license notices.
+
+## Shared tracking and activity IO (all activity owners)
+
+Canonical contracts: [`packages/contracts/src/tracking.ts`](packages/contracts/src/tracking.ts). Runtime exports: `@vibecodemaxxing/vision`. **Use one camera controller and share its frames across activities.** Activities own their gameplay/effects and an `ActivityAdapter`; they do not need to copy MediaPipe initialization, hand assignment, region detection, or score integration. The fog scrubber's implementation is not changed by this framework; its owner can adopt this interface in its own module.
+
+```text
+createTracking / createMockTracking
+        ↓ TrackingFrame (schemaVersion: 1)
+activity.evaluate(frame, context)
+        ↓ ActivitySample (schemaVersion: 1)
+ActivityScoreWindow.ingest(sample, receivedAtMs)
+        ↓ ActivityWindowScore
+game owns combos, total points, activity switching, and leaderboard
+```
+
+| Contract | Meaning |
+| --- | --- |
+| `createTracking({ video, overlay?, onFrame, onStatus, now?, assetBase? })` | Returns `{ start(), stop() }`. Starts body **and two-hand/finger** tracking; no activity scoring. Uses the same status/cleanup behavior as `createVision`. `createMockTracking` has the same API and explicit `inputMode: "mock"`. |
+| `TrackingFrame.capturedAtMs` | Capture time on the browser's monotonic `performance.now()` clock, never inference completion or `Date.now()`. |
+| `width`, `height`, `coordinateSpace` | Original image dimensions; `"camera-normalized"` means **unmirrored** x-right/y-down coordinates, 0–1 inside the image. A mirrored UI uses `1 - x`. Left/right labels are anatomical, not screen-left/right. |
+| `body.landmarks`, `body.joints` | 33 slots in exported `POSE_JOINTS` order, also available by name (`leftShoulder`, `leftWrist`, etc.). Missing/low-visibility/out-of-image points are `null`. `body.tracked` means usable shoulders/upper-body frame, not that every joint exists. |
+| `body.regions` | `{ part, center, outline }` for hair, face, chest, left/right shoulder, upper arm, and raised armpit. Regions and palm `bodyPart` use the same expanded geometry. They estimate **2D overlap**, not physical contact/depth. |
+| `hands.left`, `hands.right` | Always present: `{ tracked, source, confidence, palm, wrist, bodyPart, landmarks, joints, fingers }`. Both may occupy one region. `source` is `hand`, `pose`, or `none`; confidence is a visibility/availability heuristic, not a calibrated probability. |
+| Hand/finger landmarks | 21 slots in exported `HAND_JOINTS` order; named joints such as `indexTip`; `fingers.thumb/index/middle/ring/pinky` each expose four `joints` and `tip`. Pose fallback gives an estimated palm/wrist with **null finger landmarks**, never fake fingertip coordinates. |
+| `TrackingPoint.motion` | `{ velocity: {x,y}, speed }` or `null` on first sighting, source changes, lost tracking, or >250 ms gaps. Velocity is normalized camera units/second; scalar speed corrects x for aspect ratio and is measured in image-height units/second. This is camera-space motion; activities can stabilize against body regions as the scrub adapter does. |
+| Depth `z` | Optional model-relative depth, **not meters**. Hand and pose depths do not share an origin; don't compare them directly. |
+| `ActivityContext` | `{ targetId: string \| null, windowStartedAtMs, windowEndsAtMs }`, controlled by the game. Any activity can define its own target IDs. |
+| `ActivityAdapter` | `{ id, reset(), evaluate(frame, context): ActivitySample }`. Synchronous and independent of React/camera ownership. Reset when entering/restarting an activity. |
+| `ActivitySample` | `{ schemaVersion: 1, activityId, targetId, capturedAtMs, efficiency, confidence, tracking, feedback?, metrics? }`. Efficiency/confidence are finite 0–1; zero efficiency for wrong/stationary motion. Generic feedback has `label` and `level`; activity-specific numeric diagnostics go in `metrics`. No images or point mutations. |
+| `ActivityWindowScore` | `{ averageEfficiency, basePoints, trackingCoverage, activeCoverage, liveEfficiency }`. Coverage values and efficiency are 0–1; points are an integer, default max 1000. Game adds any multipliers. |
+
+For hand-only activities, a valid fingertip can be used even when `body.tracked` is false. The adapter's `ActivitySample.tracking` means its own required inputs are usable. For example, a finger-driven fog activity should return zero/untracked if its fingertip is missing rather than using the estimated palm as a fingertip. `createMockTracking` provides moving synthetic body **and finger** landmarks without a camera, explicitly marked `inputMode: "mock"`.
+
+`ActivityScoreWindow` uses time weighting, not sample count. Each confident tracked efficiency holds for at most **250 ms**, or until the next sample/deadline. All uncovered time is zero. It rejects other activity/target IDs, out-of-window, future, duplicate, out-of-order, stale, late-arriving, and invalid samples. Create a **new window per target/activity**. Calls to `snapshot(now)` are read-only; call it at the deadline for the final score. These defaults match the existing `VisionSample` gating, and `ActivitySample` is structurally compatible with `game.ingestVision` for the current game-engine contract. The main engine remains responsible for choosing which activity samples to ingest during the agent phase.
+
+Minimal integration for any activity (replace `createScrubActivity` with your adapter):
+
+```ts
+import { createTracking, createScrubActivity, ActivityScoreWindow } from "@vibecodemaxxing/vision";
+
+const activity = createScrubActivity();
+let context: { targetId: string | null; windowStartedAtMs: number; windowEndsAtMs: number } | null = null;
+let scoring: ActivityScoreWindow | null = null;
+const tracker = createTracking({
+  video: videoElement, overlay: canvasElement,
+  onStatus: setCameraStatus,
+  onFrame(frame) {
+    // For finger-driven activities: frame.hands.left.fingers.index.tip (may be null).
+    // For palm-driven activities: frame.hands.left.palm and .bodyPart.
+    renderTracking(frame);
+    if (context && scoring) scoring.ingest(activity.evaluate(frame, context), performance.now());
+  },
+});
+await tracker.start(); // Only enable the game's Start control after camera/model readiness.
+
+function beginActivityWindow(targetId: string | null) {
+  activity.reset();
+  const startAtMs = performance.now(), endAtMs = startAtMs + 3000;
+  context = { targetId, windowStartedAtMs: startAtMs, windowEndsAtMs: endAtMs };
+  scoring = new ActivityScoreWindow({ activityId: activity.id, targetId, startAtMs, endAtMs, maxPoints: 1000 });
+}
+// Game timer: scoring?.snapshot(performance.now()) -> live/final basePoints.
+// At deadline: finalize old window, switch context/window immediately; don't extend with timer drift.
+// On teardown: tracker.stop(); activity.reset();
+```
+
+Reference implementation: `scrub-activity.ts` consumes the shared frame, `scrub-motion.ts` measures motion relative to each body region, and `challenge.ts` owns three-second scheduling/combos using the shared scorer. Motion uses both hands independently and takes the stronger qualifying scrub, capped at 1. Hair/face placements both count toward the Head prompt. `TrackingFrameBuilder.process(...)` accepts raw pose/hand landmarks for tests or alternate camera backends; `drawTrackingOverlay(...)` is optional rendering. Keep mock runs out of the real leaderboard using `TrackingFrame.inputMode`.
 
 ## Four owners, four workstreams
 
@@ -48,7 +122,7 @@ Browser target: a current Chromium-based desktop browser, including Arc/Chrome, 
 | **UI teammate** | `apps/web/src/app/` except `api/`; `apps/web/src/components/`; client hooks; styling | Nickname/session selection, camera preview and efficiency on the left, mock coding transcript/editor and prompt input on the right, score display, results and leaderboard. Fetch sessions, create the engine and vision controller, render engine snapshots, and submit the final result to the leaderboard API. |
 | **Session teammate** | `content/sessions/*.json` | Funny, fully scripted sessions that pass validation. Each turn supplies one exact target prompt, agent duration, timestamped messages/tool activity/file edits, and its final response. No app code or scoring formulas needed. |
 | **Game-state teammate** | `packages/game-engine/`; `apps/web/src/app/api/`; `apps/web/src/lib/server/` | Implement the state machine, replay scheduler, typing/shower scoring, and results. Implement session-loading and disk-leaderboard APIs. Deliver `createGame: GameFactory` and the API responses defined below. Keep the engine independent of React and the camera model. |
-| **PM + vision (us)** | `packages/vision/`; `apps/web/public/models/`; shared contract coordination | Implement browser camera/model setup, scrub-efficiency calibration, preview/optional overlay, and timestamped samples. Deliver `createVision: VisionFactory` and `createMockVision: VisionFactory`. Vision estimates efficiency; the engine converts it to points. |
+| **PM + vision (us)** | `packages/vision/`; generated `apps/web/public/vision-assets/`; shared contract coordination | Maintain shared body/hand/finger tracking, activity IO, score-window helper, camera/model setup, and reference scrub adapter. Deliver `createTracking` / `createMockTracking` plus the compatible `createVision` / `createMockVision`. Activity owners implement adapters against `TrackingFrame`; the engine owns activity switching and final points. |
 
 Everyone imports shared types from `@vibecodemaxxing/contracts`. Coordinate changes to that package, root configuration, dependency lockfile, and this README before changing a shared interface. No teammate needs another teammate's implementation to start working against the types.
 
@@ -59,12 +133,13 @@ apps/web/
     api/leaderboard/       # GET standings + POST result (to implement)
   src/components/          # React components
   src/lib/server/          # Session loader and serialized disk store (to implement)
-  public/models/           # Vision model assets, if needed
+  public/vision-assets/    # Generated body/hand models, WASM, worker (gitignored)
 packages/
   contracts/
     src/session.ts         # Runtime Zod schema + inferred Session/AgentEvent types
     src/game.ts            # GameController, GameState, GameResult
     src/vision.ts          # VisionController, VisionSample, VisionStatus
+    src/tracking.ts        # Shared body/hand/finger frames + activity and point-return IO
     src/leaderboard.ts     # HTTP request/response types
     src/constants.ts       # Versioned scoring defaults
     session.schema.json    # Generated JSON Schema for editors; do not hand-edit

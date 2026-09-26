@@ -8,10 +8,13 @@ const require = createRequire(import.meta.url);
 const root = fileURLToPath(new URL("../", import.meta.url));
 const destination = join(root, "apps/web/public/vision-assets");
 await mkdir(destination, { recursive: true });
-const modelPath = join(destination, "pose_landmarker_full.task");
-const modelUrl = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
-if (!(await stat(modelPath).catch(() => null))?.size) {
-  console.log("Downloading the MediaPipe Pose Full model…");
+for (const [filename, modelUrl] of [
+  ["pose_landmarker_full.task", "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task"],
+  ["hand_landmarker.task", "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"],
+]) {
+  const modelPath = join(destination, filename);
+  if ((await stat(modelPath).catch(() => null))?.size) continue;
+  console.log(`Downloading ${filename}…`);
   const response = await fetch(modelUrl, { signal: AbortSignal.timeout(120_000) });
   if (!response.ok) throw new Error(`Model download failed: ${response.status}`);
   const bytes = new Uint8Array(await response.arrayBuffer());

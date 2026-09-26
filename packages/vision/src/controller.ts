@@ -1,12 +1,15 @@
 import type { VisionController, VisionStatus } from "@vibecodemaxxing/contracts";
 import { ScrubDetector } from "./detector";
 import { drawOverlay } from "./overlay";
+import { PlacementDetector } from "./placement";
+import { drawPlacementOverlay } from "./placement-overlay";
 import type { ArcadeVisionOptions } from "./types";
 import type { WorkerInput, WorkerOutput } from "./worker-protocol";
 
 export function createVision(options: ArcadeVisionOptions): VisionController {
   const now = options.now ?? (() => performance.now());
   const detector = new ScrubDetector(options.sensitivity);
+  const placement = new PlacementDetector();
   let stopped = false, running = false, busy = false;
   let stream: MediaStream | undefined, worker: Worker | undefined;
   let raf = 0, lastCapture = -Infinity, lastVideoTime = -1;
@@ -21,6 +24,7 @@ export function createVision(options: ArcadeVisionOptions): VisionController {
     if (options.video.srcObject === stream) { options.video.pause(); options.video.srcObject = null; }
     if (options.overlay) options.overlay.getContext("2d")?.clearRect(0, 0, options.overlay.width, options.overlay.height);
     detector.reset();
+    placement.reset();
   };
   const fail = (message: string, code: Extract<VisionStatus, { state: "error" }>["code"] = "model_failed") => {
     if (stopped) return;
@@ -60,7 +64,7 @@ export function createVision(options: ArcadeVisionOptions): VisionController {
       options.video.muted = true;
       options.video.playsInline = true;
       await cancellable(options.video.play());
-      worker = new Worker(`${assetBase}/pose-worker.js`);
+      worker = new Worker(`${assetBase}/pose-worker.js?v=2`);
       await cancellable(new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error("Tracker loading timed out. Run npm run vision:prepare, then retry.")), 60_000);
         const cancelTimeout = () => clearTimeout(timeout);
@@ -73,6 +77,14 @@ export function createVision(options: ArcadeVisionOptions): VisionController {
           if (data.type === "error") { done(); if (!running) reject(new Error(data.message)); else fail(data.message); return; }
           busy = false;
           const fresh = now() - data.capturedAtMs <= 250;
+          if (options.mode === "placement") {
+            const frame = placement.process(fresh ? data.landmarks : [], fresh ? data.hands : [], data.capturedAtMs, options.video.videoWidth, options.video.videoHeight);
+            frame.inferenceMs = data.inferenceMs;
+            if (options.overlay) drawPlacementOverlay(options.overlay, frame, options.video.videoWidth, options.video.videoHeight);
+            options.onPlacement?.(frame);
+            options.onSample({ capturedAtMs: data.capturedAtMs, efficiency: 0, confidence: frame.tracking ? Math.min(data.landmarks[11]?.visibility ?? 0, data.landmarks[12]?.visibility ?? 0) : 0, tracking: frame.tracking });
+            return;
+          }
           const { frame, wash } = detector.process(fresh ? data.landmarks : [], data.capturedAtMs, options.video.videoWidth, options.video.videoHeight);
           frame.inferenceMs = data.inferenceMs;
           if (options.overlay) drawOverlay(options.overlay, frame, options.video.videoWidth, options.video.videoHeight);
@@ -80,7 +92,7 @@ export function createVision(options: ArcadeVisionOptions): VisionController {
           options.onFrame?.(frame);
           if (wash) options.onWash?.(wash);
         };
-        const message: WorkerInput = { type: "init", assetBase: new URL(assetBase, location.href).href.replace(/\/$/, "") };
+        const message: WorkerInput = { type: "init", assetBase: new URL(assetBase, location.href).href.replace(/\/$/, ""), trackHands: options.mode === "placement" };
         worker!.postMessage(message);
       }));
       if (stopped) return;

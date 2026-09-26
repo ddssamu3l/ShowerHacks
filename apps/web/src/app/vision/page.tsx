@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { VisionArcade } from "./vision-arcade";
+import { ScrubChallengeView } from "./scrub-challenge";
 
-export const metadata: Metadata = { title: "Scrub Fighter · Vision Arcade" };
-export default function VisionPage() { return <VisionArcade />; }
+export const metadata: Metadata = { title: "Soap Rush · ShowerHacks" };
+export default function VisionPage() { return <ScrubChallengeView />; }

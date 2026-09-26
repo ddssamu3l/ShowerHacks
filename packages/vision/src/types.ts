@@ -1,4 +1,5 @@
 import type { VisionOptions } from "@vibecodemaxxing/contracts";
+import type { PlacementFrame } from "./placement";
 
 export const ZONES = ["hair", "chest", "left-arm", "right-arm", "left-pit", "right-pit"] as const;
 export type WashZone = typeof ZONES[number];
@@ -29,6 +30,8 @@ export interface VisionFrame {
   inferenceMs?: number;
 }
 export interface ArcadeVisionOptions extends VisionOptions {
+  mode?: "scrub" | "placement";
+  onPlacement?: (frame: PlacementFrame) => void;
   onFrame?: (frame: VisionFrame) => void;
   onWash?: (event: WashEvent) => void;
   sensitivity?: number; // 0.6..1.6, higher accepts gentler movement

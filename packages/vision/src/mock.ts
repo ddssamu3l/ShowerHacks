@@ -1,6 +1,8 @@
 import type { VisionController } from "@vibecodemaxxing/contracts";
 import { ScrubDetector } from "./detector";
 import { drawOverlay } from "./overlay";
+import { PlacementDetector } from "./placement";
+import { drawPlacementOverlay } from "./placement-overlay";
 import type { ArcadeVisionOptions, Landmark, WashZone } from "./types";
 
 /** Synthetic landmarks pass through the real scrub detector; no fake wash callbacks. */
@@ -24,6 +26,7 @@ export function createMockVision(options: ArcadeVisionOptions): VisionController
   let timer: ReturnType<typeof setInterval> | undefined;
   const now = options.now ?? (() => performance.now());
   const detector = new ScrubDetector(options.sensitivity);
+  const placement = new PlacementDetector();
   const sequence: WashZone[] = ["chest", "hair", "right-pit", "left-arm", "chest", "chest", "right-arm", "left-pit"];
   return {
     async start() {
@@ -34,6 +37,17 @@ export function createMockVision(options: ArcadeVisionOptions): VisionController
       timer = setInterval(() => {
         if (stopped) return;
         const at = now(), elapsed = at - start;
+        if (options.mode === "placement") {
+          const pose = mockPose("chest", 0);
+          const scenario = Math.floor(elapsed / 3000) % 4;
+          const places = [[{ x: .34, y: .43 }, { x: .5, y: .62 }], [{ x: .5, y: .16 }, { x: .66, y: .43 }], [{ x: .48, y: .62 }, { x: .52, y: .62 }], [{ x: .72, y: .19 }, { x: .27, y: .19 }]][scenario];
+          pose[15] = { ...places[0], visibility: .99 }; pose[16] = { ...places[1], visibility: .99 };
+          const frame = placement.process(pose, [], at, 960, 720);
+          if (options.overlay) drawPlacementOverlay(options.overlay, frame, 960, 720);
+          options.onPlacement?.(frame);
+          options.onSample({ capturedAtMs: at, efficiency: 0, confidence: .99, tracking: true });
+          return;
+        }
         const zone = sequence[Math.floor(elapsed / 2600) % sequence.length];
         const { frame, wash } = detector.process(mockPose(zone, elapsed), at, 960, 720);
         if (options.overlay) drawOverlay(options.overlay, frame, 960, 720);
