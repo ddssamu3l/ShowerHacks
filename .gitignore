@@ -8,3 +8,4 @@ coverage/
 !.env.example
 data/*
 !data/.gitkeep
+apps/web/public/vision-assets/

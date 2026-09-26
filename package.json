@@ -3,9 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
-  "engines": { "node": ">=22.0.0" },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
+    "vision:prepare": "node scripts/prepare-vision.mjs",
+    "vision:dev": "npm run vision:prepare && npm run dev",
+    "test:vision": "node --import tsx --test packages/vision/src/*.test.ts",
     "dev": "npm run dev --workspace @vibecodemaxxing/web",
     "build": "npm run validate:sessions && npm run build --workspace @vibecodemaxxing/web",
     "start": "npm run start --workspace @vibecodemaxxing/web",
@@ -15,6 +23,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "^0.28.2",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }
