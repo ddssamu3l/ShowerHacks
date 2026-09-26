@@ -3,6 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@vibecodemaxxing/contracts": "*" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./arcade": "./src/arcade.ts"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.0.1",
+    "@vibecodemaxxing/contracts": "*"
+  }
 }
