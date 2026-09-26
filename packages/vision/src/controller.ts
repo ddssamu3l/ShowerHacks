@@ -64,7 +64,7 @@ export function createVision(options: ArcadeVisionOptions): VisionController {
       options.video.muted = true;
       options.video.playsInline = true;
       await cancellable(options.video.play());
-      worker = new Worker(`${assetBase}/pose-worker.js?v=2`);
+      worker = new Worker(`${assetBase}/pose-worker.js?v=3`);
       await cancellable(new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error("Tracker loading timed out. Run npm run vision:prepare, then retry.")), 60_000);
         const cancelTimeout = () => clearTimeout(timeout);
@@ -73,7 +73,7 @@ export function createVision(options: ArcadeVisionOptions): VisionController {
         worker!.onerror = event => { done(); if (!running) reject(new Error(event.message || "Could not load pose tracker.")); else fail("Pose tracker stopped unexpectedly. Try restarting the camera."); };
         worker!.onmessage = ({ data }: MessageEvent<WorkerOutput>) => {
           if (stopped) return;
-          if (data.type === "ready") { done(); resolve(); return; }
+          if (data.type === "ready") { done(); if (data.delegates) options.onInfo?.({ delegates: data.delegates }); resolve(); return; }
           if (data.type === "error") { done(); if (!running) reject(new Error(data.message)); else fail(data.message); return; }
           busy = false;
           const fresh = now() - data.capturedAtMs <= (options.maxFrameAgeMs ?? 250);

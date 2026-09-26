@@ -8,6 +8,7 @@ const scope = globalThis as unknown as {
 };
 let model: PoseLandmarker | undefined;
 let handModel: HandLandmarker | undefined;
+const delegates: { pose: "GPU" | "CPU"; hands?: "GPU" | "CPU" } = { pose: "CPU" };
 scope.onmessage = async ({ data }) => {
   try {
     if (data.type === "init") {
@@ -20,18 +21,24 @@ scope.onmessage = async ({ data }) => {
       };
       try {
         model = await PoseLandmarker.createFromOptions(files, { ...options, baseOptions: { modelAssetPath: `${data.assetBase}/pose_landmarker_full.task`, delegate: "GPU" } });
-      } catch {
+        delegates.pose = "GPU";
+      } catch (error) {
+        console.warn("[vision] pose GPU delegate failed, using CPU:", error instanceof Error ? error.message : error);
         model = await PoseLandmarker.createFromOptions(files, { ...options, canvas: new OffscreenCanvas(1, 1), baseOptions: { modelAssetPath: `${data.assetBase}/pose_landmarker_full.task`, delegate: "CPU" } });
       }
       if (data.trackHands) {
         const handOptions = { runningMode: "VIDEO" as const, numHands: 2, minHandDetectionConfidence: .4, minHandPresenceConfidence: .4, minTrackingConfidence: .5 };
         try {
           handModel = await HandLandmarker.createFromOptions(files, { ...handOptions, canvas: new OffscreenCanvas(1, 1), baseOptions: { modelAssetPath: `${data.assetBase}/hand_landmarker.task`, delegate: "GPU" } });
-        } catch {
+          delegates.hands = "GPU";
+        } catch (error) {
+          console.warn("[vision] hand GPU delegate failed, using CPU:", error instanceof Error ? error.message : error);
           handModel = await HandLandmarker.createFromOptions(files, { ...handOptions, canvas: new OffscreenCanvas(1, 1), baseOptions: { modelAssetPath: `${data.assetBase}/hand_landmarker.task`, delegate: "CPU" } });
+          delegates.hands = "CPU";
         }
       }
-      scope.postMessage({ type: "ready" });
+      console.info("[vision] delegates", delegates);
+      scope.postMessage({ type: "ready", delegates });
     } else {
       try {
         if (!model) throw new Error("Pose tracker is not initialized.");

@@ -38,4 +38,7 @@ export interface ArcadeVisionOptions extends VisionOptions {
   assetBase?: string;
   /** Results older than this on arrival are treated as no detection. Default 250 ms; raise for slow CPU inference. */
   maxFrameAgeMs?: number;
+  /** Reports which inference delegate each model ended up on, once the worker is ready. */
+  onInfo?: (info: TrackerInfo) => void;
 }
+export interface TrackerInfo { delegates: { pose: "GPU" | "CPU"; hands?: "GPU" | "CPU" } }

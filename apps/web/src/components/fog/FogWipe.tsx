@@ -133,6 +133,7 @@ export function FogWipe() {
   const [tracking, setTracking] = useState(false);
   const [fps, setFps] = useState(0);
   const [inferenceMs, setInferenceMs] = useState<number | undefined>();
+  const [delegates, setDelegates] = useState<string>("");
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
   const cameraReady = status.state === "ready" && mode === "camera";
@@ -182,6 +183,7 @@ export function FogWipe() {
     const tracker = createTracking({
       video: videoRef.current,
       maxFrameAgeMs: 600, // CPU inference can take ~300 ms per frame; a late hand still wipes.
+      onInfo: (info) => { if (generation === session.current) setDelegates(`pose ${info.delegates.pose.toLowerCase()} · hands ${(info.delegates.hands ?? "off").toLowerCase()}`); },
       onStatus: (value) => { if (generation === session.current) setStatus(value); },
       onFrame: (frame) => { if (generation === session.current) onFrameRef.current(frame); },
     });
@@ -412,7 +414,7 @@ export function FogWipe() {
             <p>One pass thins the fog, three passes clear it. A still hand wipes nothing.</p>
             <p>Score is the percentage of the frame that is clear when the agent finishes, 0 to 100, straight into the turn&rsquo;s activity slot.</p>
             <p className="font-mono text-xs">
-              {cameraReady ? `${tracking ? "hand lock" : "no lock"} · ${fps} fps${inferenceMs ? ` · ${Math.round(inferenceMs)} ms` : ""}` : initializing ? "loading tracker…" : practice ? "simulated" : "camera off"}
+              {cameraReady ? `${tracking ? "hand lock" : "no lock"} · ${fps} fps${inferenceMs ? ` · ${Math.round(inferenceMs)} ms` : ""}${delegates ? ` · ${delegates}` : ""}` : initializing ? "loading tracker…" : practice ? "simulated" : "camera off"}
             </p>
           </CardContent>
         </Card>
