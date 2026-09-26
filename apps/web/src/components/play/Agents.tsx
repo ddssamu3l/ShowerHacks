@@ -18,7 +18,7 @@ const activityCopy: Record<AgentActivity, string> = {
 };
 
 function currentTurnId(state: GameState) {
-  if (state.phase === "typing" || state.phase === "agent") return state.turnId;
+  if (state.phase === "typing" || state.phase === "agent" || state.phase === "judging") return state.turnId;
   return state.completedTurns.at(-1)?.turnId ?? "";
 }
 

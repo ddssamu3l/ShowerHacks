@@ -64,8 +64,8 @@ export function Lobby() {
             Vibecodemaxxing
           </h1>
           <p className="max-w-md text-lg leading-[1.3] text-muted-foreground">
-            Type the prompt fast. While the agent &ldquo;works,&rdquo; get under the water and scrub. Typing and
-            showering are worth half your score each.
+            Define the word or type the prompt, fast. While the agent &ldquo;works,&rdquo; get under the water and scrub.
+            Word rounds and showering are worth half your score each.
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export function Lobby() {
                     <span className="grid gap-1">
                       <span className="font-display text-xl font-medium tracking-[-0.03em]">{session.title}</span>
                       <span className="font-mono text-xs text-white/85">
-                        {session.turns.length} prompts · {seconds}s of showering
+                        {session.turns.length} mixed rounds · {seconds}s of showering
                       </span>
                       <span className="text-sm leading-[1.4] text-white/75">{session.description}</span>
                     </span>

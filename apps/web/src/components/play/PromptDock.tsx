@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { TYPING_SCORING, type GameState, type KeystrokeEvent } from "@vibecodemaxxing/contracts";
 import { timeLimitMs } from "@vibecodemaxxing/game-engine";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { PointPops, type Pop } from "../fx/PointPop";
 import { useTimers } from "../fx/useTimers";
+
+import { QuizCard, QuizJudgingCard } from "./QuizCard";
 
 const ease = [0.23, 1, 0.32, 1] as const;
 
@@ -226,6 +228,13 @@ function AgentCard({ state }: { state: Extract<GameState, { phase: "agent" }> })
         <span className="font-mono text-lg text-signal tabular-nums">{(left / 1000).toFixed(1)}s</span>
       </div>
       <Progress value={100 * (1 - left / total)} className="h-2" indicatorClassName="bg-signal transition-none" />
+      {state.typingResult.definitionQuiz && (
+        <div className="grid gap-1 rounded-xl bg-accent p-3 text-sm">
+          <p className="font-medium">{state.typingResult.definitionQuiz.question.word} · {Math.round(state.typingResult.accuracy * 100)}% meaning match</p>
+          <p className="text-muted-foreground">{state.typingResult.definitionQuiz.feedback}</p>
+          {state.typingResult.definitionQuiz.definition && <p><span className="font-medium">Reference: </span>{state.typingResult.definitionQuiz.definition}</p>}
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <motion.span
           className="rounded-full bg-foreground px-3 py-1 text-sm font-semibold text-black tabular-nums"
@@ -233,7 +242,7 @@ function AgentCard({ state }: { state: Extract<GameState, { phase: "agent" }> })
           animate={{ opacity: 1, transform: "scale(1)" }}
           transition={{ type: "spring", duration: 0.45, bounce: 0.4 }}
         >
-          +{Math.round(state.typingResult.score)} typing
+          +{Math.round(state.typingResult.score)} {state.typingResult.definitionQuiz ? "definition" : "typing"}
         </motion.span>
         <p className="text-sm text-muted-foreground">
           {state.typingResult.notes.join(" · ")}. The next prompt appears when the agent finishes.
@@ -249,9 +258,12 @@ interface PromptDockProps {
   go: boolean;
   onStart: () => void;
   onSubmit: Submit;
+  onQuizDraft: (text: string) => void;
+  onRetryQuiz: () => void;
+  onSkipQuiz: () => void;
 }
 
-export function PromptDock({ state, countdown, go, onStart, onSubmit }: PromptDockProps) {
+function PromptDockContent({ state, countdown, go, onStart, onSubmit, onQuizDraft, onRetryQuiz, onSkipQuiz }: PromptDockProps) {
   if (state.phase === "ready") {
     if (countdown !== null) {
       return (
@@ -275,7 +287,7 @@ export function PromptDock({ state, countdown, go, onStart, onSubmit }: PromptDo
           <div className="grid gap-1">
             <p className="font-display text-2xl font-medium tracking-[-0.03em]">Ready, {state.nickname}?</p>
             <p className="text-sm text-muted-foreground">
-              {state.turnCount} prompts. The clock starts the moment each prompt appears.
+              {state.turnCount} rounds, mixing definitions and typing. Each clock starts when the round appears.
             </p>
           </div>
           <Button size="lg" onClick={onStart}>
@@ -286,6 +298,8 @@ export function PromptDock({ state, countdown, go, onStart, onSubmit }: PromptDo
     );
   }
 
+  if (state.phase === "judging") return <QuizJudgingCard state={state} onRetry={onRetryQuiz} onSkip={onSkipQuiz} />;
+  if (state.phase === "typing" && state.quiz) return <QuizCard key={state.turnId} state={state} onDraft={onQuizDraft} onSubmit={(text) => onSubmit(text, [])} />;
   if (state.phase === "typing") {
     return (
       <Enter key={`typing-${state.turnId}`}>
@@ -306,5 +320,21 @@ export function PromptDock({ state, countdown, go, onStart, onSubmit }: PromptDo
     <Card className="gap-3 rounded-[20px] px-5 py-5">
       <p className="font-display text-2xl font-medium tracking-[-0.03em]">Run finished. Adding up your score.</p>
     </Card>
+  );
+}
+
+/** The incoming card mounts immediately: transitions never extend the answer timer. */
+export function PromptDock(props: PromptDockProps) {
+  const reduce = useReducedMotion();
+  const state = props.state;
+  const key = state.phase === "typing" ? `${state.quiz ? "quiz" : "typing"}-${state.turnId}` : state.phase;
+  return (
+    <motion.div layout={!reduce} transition={{ duration: reduce ? 0 : 0.22, ease }} className="relative">
+      <AnimatePresence initial={false} mode="popLayout">
+        <motion.div key={key} initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -8, pointerEvents: "none" }} transition={{ duration: reduce ? 0 : 0.18, ease }}>
+          <PromptDockContent {...props} />
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
   );
 }

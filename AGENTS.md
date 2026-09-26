@@ -23,6 +23,7 @@ with a fake shower.
   timing rules and already scores typing with the engine's `scoreTyping` (keystrokes included, so pause
   and backspace penalties apply). Replace it with `createGame` from `@vibecodemaxxing/game-engine` when
   that lands; keep the `GameController` interface.
+- **Definition quizzes:** The playable loop alternates quizzes and typing. Quiz state/timing belongs to the design controller; `/api/quiz/judge` grades against server-only references. See README “Definition sprint” for API key setup, scoring, and handoff.
 - **Sessions:** `commit-to-love` (10 prompts, three agents) and `ship-it` (3 prompts), loaded in
   `components/design/session.ts`. The agent strip (`play/Agents.tsx`) uses `getAgentWindows`.
 - **Camera:** `components/camera/CameraProvider.tsx` wraps `createTracking` from `@vibecodemaxxing/vision`

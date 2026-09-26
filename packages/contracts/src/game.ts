@@ -1,3 +1,4 @@
+import type { DefinitionResult, QuizJudge, QuizQuestion, QUIZ_SCORING_VERSION } from "./quiz";
 import type { SCORING_VERSION } from "./constants";
 import type { AgentEvent, Session } from "./session";
 import type { VisionSample } from "./vision";
@@ -9,6 +10,8 @@ export interface KeystrokeEvent {
 }
 
 export interface TypingResult {
+  /** Present for definition rounds; accuracy is semantic and point fields use a 0..100 budget. */
+  definitionQuiz?: DefinitionResult;
   submittedText: string;
   durationMs: number; // Time from entering `typing` to submit, reaction time included
   timeLimitMs: number; // Speed points reach zero here; derived from target length
@@ -40,7 +43,7 @@ export interface GameResult {
   nickname: string;
   sessionId: string;
   sessionVersion: number;
-  scoringVersion: typeof SCORING_VERSION;
+  scoringVersion: typeof SCORING_VERSION | typeof QUIZ_SCORING_VERSION;
   inputMode: "camera" | "mock";
   completedAt: string; // ISO-8601 UTC; wall clock for display only
   typingScore: number; // 0..100, equal-weight mean across turns
@@ -67,7 +70,8 @@ interface GameStateBase {
 
 export type GameState = GameStateBase & (
   | { phase: "ready" }
-  | { phase: "typing"; turnIndex: number; turnId: string; targetPrompt: string; typingStartedAtMs: number }
+  | { phase: "typing"; turnIndex: number; turnId: string; targetPrompt: string; typingStartedAtMs: number; quiz?: QuizQuestion; quizDraft?: string }
+  | { phase: "judging"; turnIndex: number; turnId: string; question: QuizQuestion; submittedText: string; durationMs: number; error: string | null }
   | { phase: "agent"; turnIndex: number; turnId: string; agentStartedAtMs: number; agentEndsAtMs: number; typingResult: TypingResult; liveEfficiency: number }
   | { phase: "finished"; result: GameResult }
 );
@@ -76,6 +80,7 @@ export interface GameOptions {
   session: Session;
   nickname: string; // Trim outer whitespace; require 1..24 Unicode code points.
   inputMode: "camera" | "mock";
+  definitionQuiz?: { judge: QuizJudge; wordOffset?: number }; // Alternates quiz and typing, starting with a quiz.
   now?: () => number; // Defaults to performance.now(); scheduling must use the same clock.
 }
 
@@ -84,6 +89,9 @@ export interface GameController {
   subscribe(listener: (state: GameState) => void): () => void; // Does not emit on subscription.
   start(): void; // ready -> typing; repeated calls have no effect.
   submitPrompt(text: string, keystrokes?: readonly KeystrokeEvent[]): boolean; // Accept only in typing, reject empty string, transition synchronously. Keystrokes are optional and enable pause/correction penalties.
+  updateQuizDraft(text: string): void; // Engine retains the answer for automatic deadline submission.
+  retryQuiz(): void; // Retry the frozen answer without changing elapsed time.
+  skipQuiz(): void; // After a judging failure only; awards zero and resumes the run.
   ingestVision(sample: VisionSample): void; // Engine validates and gates samples by the active agent phase.
   dispose(): void; // Cancel all timers/listeners; idempotent. Create a new controller to restart.
 }

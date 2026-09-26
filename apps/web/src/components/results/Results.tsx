@@ -111,7 +111,7 @@ function ResultsScreen({ result, isSample }: { result: GameResult; isSample: boo
   const practice = result.inputMode === "mock";
   const celebrate = !practice && rank > 0 && rank <= 3;
   const parts = [
-    { label: "Typing", value: result.typingScore, text: "text-foreground", bar: "bg-foreground" },
+    { label: "Words", value: result.typingScore, text: "text-foreground", bar: "bg-foreground" },
     { label: "Shower", value: result.showerScore, text: "text-signal", bar: "bg-signal" },
   ];
 
@@ -164,11 +164,11 @@ function ResultsScreen({ result, isSample }: { result: GameResult; isSample: boo
           </div>
         </section>
 
-        <section className="flex flex-col gap-4" aria-label="Each prompt">
-          <h2 className="font-display text-[22px] font-medium tracking-[-0.03em]">Each prompt</h2>
+        <section className="flex flex-col gap-4" aria-label="Each round">
+          <h2 className="font-display text-[22px] font-medium tracking-[-0.03em]">Each round</h2>
           <ol className="grid gap-2">
             {result.turns.map((turn, index) => {
-              const prompt = session.turns.find((item) => item.id === turn.turnId)?.prompt ?? turn.turnId;
+              const prompt = turn.typing.definitionQuiz ? `Define ${turn.typing.definitionQuiz.question.word}` : session.turns.find((item) => item.id === turn.turnId)?.prompt ?? turn.turnId;
               return (
                 <li
                   key={turn.turnId}
@@ -177,6 +177,13 @@ function ResultsScreen({ result, isSample }: { result: GameResult; isSample: boo
                   <span className="font-mono text-sm text-muted-foreground">{index + 1}</span>
                   <div className="grid min-w-0 gap-1">
                     <p className="font-mono text-[13px] leading-[1.4]">{prompt}</p>
+                    {turn.typing.definitionQuiz && (
+                      <div className="grid gap-1 text-xs text-muted-foreground">
+                        <p>Your answer: {turn.typing.submittedText || "No answer"}</p>
+                        <p>{turn.typing.definitionQuiz.feedback}</p>
+                        {turn.typing.definitionQuiz.definition && <p>Reference: {turn.typing.definitionQuiz.definition}</p>}
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       {(turn.typing.durationMs / 1000).toFixed(1)}s · {turn.typing.notes.join(" · ")} ·{" "}
                       {Math.round(turn.shower.trackingCoverage * 100)}% of the shower on camera

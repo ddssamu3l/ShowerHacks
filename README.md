@@ -2,7 +2,7 @@
 
 A hackathon game about typing increasingly unhinged prompts while a fake coding agent makes increasingly stupid mistakes. Type while the agent waits; pretend to shower while it works. Highest score wins.
 
-This repository contains the team scaffold, a **shared body/hand/finger tracking framework**, the **Soap Rush timed challenge at `/vision`**, a **hand-placement viewer at `/vision/placement`**, and the earlier **Scrub Fighter prototype at `/vision/arcade`**. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are also provided. The **playable game** (lobby, play, results) runs end to end on a stand-in game loop until `createGame` lands; see [Playable game UI](#playable-game-ui). The leaderboard routes still need implementation. There are no real LLM calls or executed agent commands.
+This repository contains the team scaffold, a **shared body/hand/finger tracking framework**, the **Soap Rush timed challenge at `/vision`**, a **hand-placement viewer at `/vision/placement`**, and the earlier **Scrub Fighter prototype at `/vision/arcade`**. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are also provided. The **playable game** (lobby, play, results) runs end to end on a stand-in game loop until `createGame` lands; see [Playable game UI](#playable-game-ui). The leaderboard routes still need implementation. Coding-agent events are simulated and never execute commands. Definition quiz judging calls an LLM from a server-only endpoint.
 
 **Agents and new contributors: start with [`AGENTS.md`](AGENTS.md).** The next planned change is replacing the coding-agent terminal with a bathroom renovation; all ideas are in [`docs/ideas.md`](docs/ideas.md).
 
@@ -20,14 +20,14 @@ npm test                    # unit tests (vitest) for packages/
 npm run build               # session validation + production Next.js build
 ```
 
-The web app uses the Next.js App Router and React; local TypeScript packages are compiled by Next.js. This follows the [official Next.js installation guidance](https://nextjs.org/docs/app/getting-started/installation). No database, API key, or separate backend process is needed. The intended demo deployment is one persistent Node.js server with a writable local disk.
+The web app uses the Next.js App Router and React; local TypeScript packages are compiled by Next.js. This follows the [official Next.js installation guidance](https://nextjs.org/docs/app/getting-started/installation). No database or separate backend process is needed. Definition quiz judging requires a server-side OpenAI API key (see Definition sprint below). The intended demo deployment is one persistent Node.js server with a writable local disk.
 
 ## Playable game UI
 
 `/` is the lobby (nickname, session, camera check), `/play` the round, `/results` the score breakdown and a sample leaderboard.
 
 - **Loop:** `apps/web/src/components/design/design-game.ts` implements `GameController` with the timing rules below and scores typing with the engine's `scoreTyping`, including the keystroke log. Swap it for `createGame` without changing the screens.
-- **Prompt dock:** the white card at the top. Live per-letter states, a speed bar that drains toward `timeLimitMs`, a streak chip, and the scorer's notes after each submit.
+- **Prompt dock:** the white card at the top alternates timed definition quizzes and typing. Quiz rounds use server-side LLM judging; see [Definition sprint](#definition-sprint). Typing retains live per-letter states, a speed bar that drains toward `timeLimitMs`, a streak chip, and the scorer's notes after each submit.
 - **Agents:** the sessions list `commit-to-love` first. A strip shows each agent's activity and progress from `getAgentWindows`; transcript lines are labeled by agent.
 - **Camera and shower:** `components/camera/CameraProvider.tsx` wraps `createTracking`; shower efficiency comes from `PlacementScrubDetector` and only counts while the body is under the moving water stream. Foam bubbles follow raw hand speed and are visual only.
 - **Filth:** camera rounds start with the player covered in mud and 💩 (`components/camera/filth.ts`). Scrubbing a region under the water cleans it. Visual only; it does not change the score yet.
@@ -288,6 +288,68 @@ window state. Sessions without a roster project into one legacy coding window.
 Backend/content handoff is ready; the UI owner must render the windows and the
 game-state owner must implement the existing `createGame` scheduler and session
 HTTP routes. Those scaffold stubs are not implemented by this content feature.
+
+## Definition sprint
+
+The playable UI alternates definition quizzes and existing typing prompts, starting
+with a quiz. A run rotates through a randomized starting position in the six-word
+pool. Short sessions use a subset; all six words are available across runs. Coding
+agent replays and shower scoring continue after either kind of answer.
+
+| Word | Time | Reference definition |
+| --- | --- | --- |
+| Larp | 30s | Pretending to be someone you are not, faking an interest, or putting on a performative act for an audience. |
+| Yap | 25s | Talking excessively or rambling about trivial things without getting to the point. |
+| Hypergamy | 35s | Marrying or dating someone with higher social status, greater wealth, or a higher educational level than oneself. |
+| Tokenmaxxing | 40s | Maximizing AI token usage through prompts, coding sessions, or parallel agents to signal productivity, AI proficiency, or status. |
+| Clanker | 15s | A derogatory term for robots or artificial intelligence. |
+| Cracked | 15s | Highly skilled or exceptionally talented, especially at coding. |
+
+Definitions and grading rubrics live only in
+`apps/web/src/lib/server/quiz-definitions.ts`. Client question metadata (word, ID,
+time budget) lives in `packages/contracts/src/quiz.ts`. The reference is revealed
+with feedback after judging. Concise paraphrases and minor spelling errors are
+accepted by the rubric; the model judges meaning rather than exact text.
+
+Copy `apps/web/.env.example` to `apps/web/.env.local`, set `OPENAI_API_KEY`, and
+restart Next.js. `OPENAI_QUIZ_MODEL` defaults to `gpt-4.1-mini`. The key never goes to
+the browser. `POST /api/quiz/judge` accepts only `{ wordId, answer }`, looks up the
+reference itself, and uses the Responses API with strict structured output and
+`store: false`. It returns bounded accuracy (0–100), brief feedback, and the
+reference. See [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Camera practice mode still uses the real judge; it does not invent LLM grades.
+
+```text
+remaining = clamp(1 - elapsedMs / wordTimeLimitMs, 0, 1)
+wordScore = semanticAccuracy * (0.70 + 0.30 * remaining)
+```
+
+Accuracy is 0–100. An 80% answer at half its time budget earns 68/100. An unrelated
+answer earns zero regardless of speed. A fully correct answer at the deadline
+still earns 70. Blank answers or explicitly skipped failed judgments earn zero.
+Quiz scores replace that turn's typing contribution, retaining equal weighting
+with shower scores. Mixed runs use `v3-definition` so they do not share score
+boards with `v2` typing-only runs. `TypingResult.definitionQuiz` identifies the
+semantic score, rubric feedback, reference, and graded/empty/skipped outcome;
+legacy point fields use a 70/30 budget for this case, not typing's 200/300 budget.
+
+The controller remains the timing authority. `definitionQuiz` in `GameOptions`
+enables the mode and injects a judge; omission preserves typing-only behavior.
+Quiz rounds use the existing `typing` phase with a `quiz` descriptor.
+`updateQuizDraft` saves the latest on-time answer so the controller auto-submits at
+the absolute deadline even when the browser timer is delayed. Enter locks the
+answer early. `judging` freezes answer and duration; no input or shower points
+accrue while waiting. `retryQuiz` resubmits the same frozen answer; `skipQuiz` is
+available only after a failure and gives zero. Disposal aborts a pending request.
+A fresh full shower interval begins only after grading. Transitions crossfade and
+resize without delaying the clock; reduced-motion preferences are respected.
+
+The route validates input/output, caps answer length at 600, bounds upstream wait
+time, rejects cross-origin requests, and never returns upstream errors or secrets.
+It uses the same local-hackathon trust model as the rest of the app: elapsed time
+is maintained by the client controller. Before public hosting, add authentication,
+per-player quotas, and authoritative server timing. The existing leaderboard UI
+is still a design stand-in rather than a persisted competitive board.
 
 ## Vision IO: camera → engine
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import type { GameController, GameState } from "@vibecodemaxxing/contracts";
+import { QUIZ_QUESTIONS, type GameController, type GameState } from "@vibecodemaxxing/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -11,6 +11,7 @@ import { CameraView } from "../camera/CameraView";
 import { PLACEMENT_LABELS } from "@vibecodemaxxing/vision";
 import { useCamera, usePoseSnapshot } from "../camera/CameraProvider";
 import { PixiWater } from "../shower/PixiWater";
+import { judgeQuiz } from "../design/quiz-client";
 import { createDesignGame } from "../design/design-game";
 import { findSession } from "../design/session";
 import { readPlayer, saveResult, type PlayerChoice } from "../design/run-storage";
@@ -48,7 +49,7 @@ function Meter({ label, value, onSpotlight }: { label: string; value: number; on
 type Score = GameState["score"];
 
 function ScoreBar({ state, score, practice }: { state: GameState; score: Score; practice: boolean }) {
-  const turn = state.phase === "typing" || state.phase === "agent" ? state.turnIndex : state.completedTurns.length;
+  const turn = state.phase === "typing" || state.phase === "agent" || state.phase === "judging" ? state.turnIndex : state.completedTurns.length;
   return (
     <header className="col-span-2 flex h-14 items-center justify-between gap-4 px-2 max-lg:col-span-1">
       <div className="flex items-center gap-3">
@@ -72,7 +73,7 @@ function ScoreBar({ state, score, practice }: { state: GameState; score: Score; 
       </ol>
       <dl className="flex gap-6">
         <div className="grid justify-items-end" data-fx="typing-score">
-          <dt className="text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase">Typing</dt>
+          <dt className="text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase">Words</dt>
           <dd className="font-mono text-xl tabular-nums">
             <AnimatedNumber value={score.typing} />
           </dd>
@@ -152,7 +153,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
     const showerFrom = centerOf(showerRef.current);
     const next: Flight[] = [];
     if (typingFrom && typingTo) {
-      next.push({ id: ++flightId.current, text: `+${Math.round(turn.typing.score)} typing`, from: typingFrom, to: typingTo, tone: "typing" });
+      next.push({ id: ++flightId.current, text: `+${Math.round(turn.typing.score)} ${turn.typing.definitionQuiz ? "definition" : "typing"}`, from: typingFrom, to: typingTo, tone: "typing" });
     }
     if (showerFrom && showerTo) {
       next.push({ id: ++flightId.current, text: `+${Math.round(turn.shower.score)} shower`, from: showerFrom, to: showerTo, tone: "water" });
@@ -219,6 +220,9 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           go={go}
           onStart={start}
           onSubmit={(text, keystrokes) => game.submitPrompt(text, keystrokes)}
+          onQuizDraft={(text) => game.updateQuizDraft(text)}
+          onRetryQuiz={() => game.retryQuiz()}
+          onSkipQuiz={() => game.skipQuiz()}
         />
       </section>
       <section className="relative min-h-0 max-lg:aspect-[4/3]" aria-label="Your shower">
@@ -294,6 +298,7 @@ export function Play() {
       session: findSession(player.sessionId),
       nickname: player.nickname,
       inputMode: player.inputMode,
+      definitionQuiz: { judge: judgeQuiz, wordOffset: Math.floor(Math.random() * QUIZ_QUESTIONS.length) },
     });
     setRound({ player, game });
     return () => game.dispose();

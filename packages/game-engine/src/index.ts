@@ -18,3 +18,4 @@ export {
 // Per-turn typing scoring is `scoreTyping` above; call it from submitPrompt.
 
 export { getAgentWindows, type AgentWindow } from "./agent-windows";
+export { quizForTurn, scoreDefinition } from "./quiz";
