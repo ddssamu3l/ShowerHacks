@@ -14,6 +14,9 @@ import { PixiWater } from "../shower/PixiWater";
 import { judgeQuiz } from "../design/quiz-client";
 import { FogLayer } from "../fog/FogLayer";
 import { createFilth, filthAverage, type Filth } from "../camera/filth";
+
+/** Only the head gets dirty: wash your hair and face, the score follows those two zones. */
+const FILTHY_PARTS = ["hair", "face"] as const;
 import { activityForTurn, activityLabel } from "../design/activity";
 import { createFog, clearedFraction, type FogState } from "@vibecodemaxxing/game-engine";
 import { createDesignGame } from "../design/design-game";
@@ -121,7 +124,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const dockRef = useRef<HTMLElement>(null);
   const showerRef = useRef<HTMLDivElement>(null);
   const fogRef = useRef<FogState>(createFog());
-  const filthRef = useRef<Filth>(createFilth());
+  const filthRef = useRef<Filth>(createFilth(FILTHY_PARTS));
   const [fogHands, setFogHands] = useState(0);
 
   useEffect(() => {
@@ -203,7 +206,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const [showerKey, setShowerKey] = useState(-1);
   if (showerTurnKey !== showerKey) {
     // Every shower turn starts fully filthy; when it ends the filth is gone, so the next mini-game starts clean.
-    filthRef.current = createFilth();
+    filthRef.current = createFilth(FILTHY_PARTS);
     setShowerKey(showerTurnKey);
   }
   const live = state.phase === "agent" ? state.liveEfficiency : 0;
@@ -290,8 +293,8 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
                   : wet
                     ? pose.zone && pose.scrub > 0.15
                       ? `Scrubbing your ${PLACEMENT_LABELS[pose.zone].toLowerCase()}.`
-                      : "Under the water. Scrub!"
-                    : "Get under the water."
+                      : "Under the water. Wash your head!"
+                    : "Get your head under the water."
                 : activity === "fog" ? "Next up: wipe the camera." : "Shower is off while you type."}
             </p>
             {activity === "fog" ? (
@@ -299,7 +302,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
             ) : (
               <>
                 <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />
-                <Meter label="Washed off" value={live} onSpotlight={wet} />
+                <Meter label="Head washed" value={live} onSpotlight={wet} />
               </>
             )}
           </CardContent>

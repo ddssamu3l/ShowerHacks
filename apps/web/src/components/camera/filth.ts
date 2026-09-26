@@ -23,6 +23,8 @@ interface Shape {
 }
 
 export interface Filth {
+  /** Body parts that get filthy; everything else stays clean and is ignored by the score. Undefined = all. */
+  parts?: readonly BodyPart[];
   level: Map<BodyPart, number>;
   splats: Map<BodyPart, Splat[]>;
   poops: Map<BodyPart, Point>;
@@ -69,8 +71,8 @@ function makeSplats(part: BodyPart): Splat[] {
   }));
 }
 
-export function createFilth(): Filth {
-  return { level: new Map(), splats: new Map(), poops: new Map(), shapes: new Map(), sparkles: [], revealAt: null };
+export function createFilth(parts?: readonly BodyPart[]): Filth {
+  return { parts, level: new Map(), splats: new Map(), poops: new Map(), shapes: new Map(), sparkles: [], revealAt: null };
 }
 
 function ensure(filth: Filth, part: BodyPart) {
@@ -85,6 +87,7 @@ const lerp = (from: Point, to: Point) => ({ x: from.x + (to.x - from.x) * SMOOTH
 
 function trackShapes(filth: Filth, regions: readonly BodyRegion[], now: number) {
   for (const region of regions) {
+    if (filth.parts && !filth.parts.includes(region.part)) continue;
     ensure(filth, region.part);
     const shape = filth.shapes.get(region.part);
     if (!shape || shape.outline.length !== region.outline.length || now - shape.seenAt > HOLD_MS) {
