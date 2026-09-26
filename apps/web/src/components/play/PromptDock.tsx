@@ -105,7 +105,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
   const activeWord = typedWords.length - 1;
 
   return (
-    <Card className="on-inverse relative gap-2 overflow-visible rounded-2xl bg-foreground px-4 py-3.5 text-black ring-0">
+    <Card className="on-inverse relative gap-2 overflow-visible rounded-2xl bg-prompt px-4 py-3.5 text-black ring-0">
       <form
         className="grid gap-2.5"
         onSubmit={(event) => {
@@ -202,7 +202,7 @@ function TypingCard({ state, go, onSubmit }: { state: Extract<GameState, { phase
       <AnimatePresence>
         {go && (
           <motion.p
-            className="pointer-events-none absolute inset-0 grid place-items-center rounded-2xl bg-foreground/85 font-display text-5xl font-semibold tracking-[-0.05em] text-black"
+            className="pointer-events-none absolute inset-0 grid place-items-center rounded-2xl bg-prompt/85 font-display text-5xl font-semibold tracking-[-0.05em] text-black"
             initial={{ opacity: 0, transform: "scale(1.25)" }}
             animate={{ opacity: 1, transform: "scale(1)" }}
             exit={{ opacity: 0, transform: "scale(0.96)" }}
@@ -273,7 +273,7 @@ function PromptDockContent({ state, countdown, go, onStart, onSubmit, onQuizDraf
   if (state.phase === "ready") {
     if (countdown !== null) {
       return (
-        <Card className="min-h-[92px] justify-center rounded-2xl bg-foreground text-black ring-0">
+        <Card className="min-h-[92px] justify-center rounded-2xl bg-prompt text-black ring-0">
           <motion.p
             key={countdown}
             className="text-center font-display text-5xl font-semibold tracking-[-0.05em] tabular-nums"

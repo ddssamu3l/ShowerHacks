@@ -25,7 +25,7 @@ export function QuizCard({ state, onDraft, onSubmit }: {
   const urgent = left <= 5000;
 
   return (
-    <Card className="gap-2.5 rounded-2xl bg-foreground px-4 py-3.5 text-black ring-0 sm:px-5">
+    <Card className="gap-2.5 rounded-2xl bg-prompt px-4 py-3.5 text-black ring-0 sm:px-5">
       <div className="flex items-center justify-between gap-4">
         <span className="text-xs font-semibold tracking-[0.12em] text-black/55 uppercase">Definition sprint · round {state.turnIndex + 1}/{state.turnCount}</span>
         <span className={`font-mono text-lg tabular-nums ${urgent ? "text-red-700" : "text-black"}`} role="timer" aria-label={`${Math.ceil(left / 1000)} seconds remaining`}>{(left / 1000).toFixed(1)}s</span>
@@ -71,7 +71,7 @@ export function QuizJudgingCard({ state, onRetry, onSkip }: {
   onSkip: () => void;
 }) {
   return (
-    <Card className="justify-center gap-2.5 rounded-2xl bg-foreground px-5 py-4 text-black ring-0">
+    <Card className="justify-center gap-2.5 rounded-2xl bg-prompt px-5 py-4 text-black ring-0">
       <p className="text-xs font-semibold tracking-[0.12em] text-black/55 uppercase">Definition sprint · {state.question.word}</p>
       <h2 className="font-display text-2xl font-medium tracking-[-0.03em]">{state.error ? "The judge needs a moment." : "Checking the meaning…"}</h2>
       <p className="text-sm text-black/60">Answer locked at {(state.durationMs / 1000).toFixed(1)}s. Judging time does not affect your score.</p>

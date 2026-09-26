@@ -10,15 +10,36 @@ This repository contains the team scaffold, a **shared body/hand/finger tracking
 
 Use Node.js 22+ and npm. From the repository root:
 
+Install dependencies once:
+
 ```sh
 npm ci
-npm run dev                 # prepares vision models if missing, then http://localhost:3000
-npm run brand               # brand guidelines app, http://localhost:3002
-npm run validate:sessions   # validate every content/sessions/*.json
-npm run typecheck           # shared packages, scripts, and web app
-npm test                    # unit tests (vitest) for packages/
-npm run build               # session validation + production Next.js build
 ```
+
+Start the game (prepares missing vision models, then serves http://localhost:3000):
+
+```sh
+npm run dev
+```
+
+This command stays running. Open a **second terminal** for the optional brand app at http://localhost:3002:
+
+```sh
+npm run brand
+```
+
+Run checks separately. Stop the servers with Ctrl+C before reinstalling dependencies or building:
+
+```sh
+npm run validate:sessions
+npm run typecheck
+npm test
+npm run build
+```
+
+The checks validate session JSON, check TypeScript, run game/web and vision tests, and build the production web app.
+
+**Copy/paste tip (macOS zsh):** use the commands above without trailing `#` comments. Interactive zsh can pass comment text as arguments, causing `Invalid project directory .../apps/web/#` or Vite to start on port 5173 with the wrong root. Stop that process with Ctrl+C and rerun the plain command. Run only one game dev server at a time; a second instance can hit a port or `.next/dev/lock` conflict.
 
 The web app uses the Next.js App Router and React; local TypeScript packages are compiled by Next.js. This follows the [official Next.js installation guidance](https://nextjs.org/docs/app/getting-started/installation). No database or separate backend process is needed. Definition quiz judging requires a server-side OpenAI API key (see Definition sprint below). The intended demo deployment is one persistent Node.js server with a writable local disk.
 
@@ -27,11 +48,11 @@ The web app uses the Next.js App Router and React; local TypeScript packages are
 `/` is the lobby (nickname, session, camera check), `/play` the round, `/results` the score breakdown and a sample leaderboard.
 
 - **Loop:** `apps/web/src/components/design/design-game.ts` implements `GameController` with the timing rules below and scores typing with the engine's `scoreTyping`, including the keystroke log. Swap it for `createGame` without changing the screens.
-- **Prompt dock:** the white card at the top alternates timed definition quizzes and typing. Quiz rounds use server-side LLM judging; see [Definition sprint](#definition-sprint). Typing retains live per-letter states, a speed bar that drains toward `timeLimitMs`, a streak chip, and the scorer's notes after each submit.
+- **Prompt dock:** the light-grey card at the top alternates timed definition quizzes and typing. Quiz rounds use server-side LLM judging; see [Definition sprint](#definition-sprint). Typing retains live per-letter states, a speed bar that drains toward `timeLimitMs`, a streak chip, and the scorer's notes after each submit.
 - **Agents:** the sessions list `commit-to-love` first. A strip shows each agent's activity and progress from `getAgentWindows`; transcript lines are labeled by agent.
 - **Camera and shower:** `components/camera/CameraProvider.tsx` wraps `createTracking`; shower efficiency comes from `PlacementScrubDetector` and only counts while the body is under the moving water stream. Foam bubbles follow raw hand speed and are visual only.
 - **Filth:** camera rounds start with the player covered in mud and 💩 (`components/camera/filth.ts`). Scrubbing a region under the water cleans it. Visual only; it does not change the score yet.
-- **Brand:** `apps/brand` (`npm run brand`) imports the real `globals.css` and `components/ui`, so it can't drift. Flat Framer style with no gradients: white card for typing, solid blue for the shower.
+- **Brand:** `apps/brand` (`npm run brand`) imports the real `globals.css` and `components/ui`, so it can't drift. Flat Framer style with no gradients: light-grey card for typing, solid blue for the shower.
 
 ## Webcam prototypes
 

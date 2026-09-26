@@ -32,7 +32,7 @@ with a fake shower.
 - **Filth:** `components/camera/filth.ts` covers the player in mud and 💩 when a camera round starts.
   Scrubbing a body region under the water cleans it. It is visual only; it does not change the score.
 - **Brand:** `apps/brand` renders the real `globals.css` and `components/ui`. Flat Framer style: black
-  canvas, white type, one blue. No gradients. White card = typing, solid blue (`bg-water`) = shower.
+  canvas, white type, one blue. No gradients. Light-grey card (`bg-prompt`) = typing, solid blue (`bg-water`) = shower.
 
 ## Next task: build the bathroom you're showering in, instead of coding sessions
 
