@@ -233,23 +233,11 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   return (
     <div
       className={cn(
-        "grid min-h-svh grid-cols-1 grid-rows-[auto_auto_minmax(360px,1fr)] gap-2.5 p-3 transition-[grid-template-columns,column-gap] duration-[420ms] ease-[var(--ease-out)] motion-reduce:transition-none lg:h-svh lg:grid-rows-[auto_auto_minmax(320px,1fr)]",
+        "grid min-h-svh grid-cols-1 grid-rows-[auto_minmax(360px,1fr)_auto] gap-2.5 p-3 transition-[grid-template-columns,column-gap] duration-[420ms] ease-[var(--ease-out)] motion-reduce:transition-none lg:h-svh lg:grid-rows-[auto_minmax(320px,1fr)_auto]",
         showering ? "lg:grid-cols-[minmax(0,1fr)_0px] lg:gap-x-0" : "lg:grid-cols-[minmax(0,1fr)_300px]",
       )}
     >
       <ScoreBar state={state} score={shownScore} practice={practice} />
-      <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
-        <PromptDock
-          state={state}
-          countdown={countdown}
-          go={go}
-          onStart={start}
-          onSubmit={(text, keystrokes) => game.submitPrompt(text, keystrokes)}
-          onQuizDraft={(text) => game.updateQuizDraft(text)}
-          onRetryQuiz={() => game.retryQuiz()}
-          onSkipQuiz={() => game.skipQuiz()}
-        />
-      </section>
       <section className="relative min-w-0 min-h-[360px] lg:min-h-[320px]" aria-label="Your shower">
         <CameraView
           className="aspect-auto size-full"
@@ -321,6 +309,18 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           <Editor entries={state.transcript} />
         </div>
       </aside>
+      <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
+        <PromptDock
+          state={state}
+          countdown={countdown}
+          go={go}
+          onStart={start}
+          onSubmit={(text, keystrokes) => game.submitPrompt(text, keystrokes)}
+          onQuizDraft={(text) => game.updateQuizDraft(text)}
+          onRetryQuiz={() => game.retryQuiz()}
+          onSkipQuiz={() => game.skipQuiz()}
+        />
+      </section>
       <FlyingPoints flights={flights} onDone={(id) => setFlights((current) => current.filter((flight) => flight.id !== id))} />
     </div>
   );
