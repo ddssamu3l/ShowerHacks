@@ -209,9 +209,10 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   return (
     <div
       className={cn(
-        "grid h-svh grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-3 transition-[grid-template-columns] duration-500 ease-[var(--ease-in-out)] max-lg:h-auto max-lg:grid-cols-1",
-        // While showering the agent panels fold away so the camera takes the whole width.
-        showering ? "grid-cols-[minmax(0,1fr)_0fr]" : "grid-cols-[minmax(0,1fr)_minmax(300px,380px)]",
+        // Pixel widths on both ends so the browser can interpolate: the camera glides wider,
+        // the agent panels slide off to the right. Column gap animates to zero with it.
+        "grid h-svh grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-3 transition-[grid-template-columns,column-gap] duration-[420ms] ease-[var(--ease-out)] max-lg:h-auto max-lg:grid-cols-1",
+        showering ? "grid-cols-[minmax(0,1fr)_0px] gap-x-0" : "grid-cols-[minmax(0,1fr)_380px]",
       )}
     >
       <ScoreBar state={state} score={shownScore} practice={practice} />
@@ -253,14 +254,16 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
       </section>
       <aside
         className={cn(
-          "grid min-h-0 min-w-0 grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3 overflow-hidden transition-opacity duration-300 max-lg:grid-rows-none",
+          "min-h-0 min-w-0 overflow-hidden transition-opacity duration-[260ms] ease-[var(--ease-out)] max-lg:overflow-visible",
           showering && "pointer-events-none opacity-0 max-lg:hidden",
         )}
         aria-label="Coding agent"
         aria-hidden={showering}
       >
+       <div className="grid h-full w-[380px] grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3 max-lg:w-auto max-lg:grid-rows-none">
         <Transcript entries={state.transcript} working={showering} />
         <Editor entries={state.transcript} />
+       </div>
       </aside>
       <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
         <PromptDock
