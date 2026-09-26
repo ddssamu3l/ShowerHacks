@@ -160,6 +160,17 @@ A second activity for the agent phase: the camera preview fogs over like a bathr
 
 Engine side is pure and tested: `createFog`, `applyWipe`, `advanceFog`, `freezeFog`, `scoreFog` in `packages/game-engine/src/fog.ts`, plus `createFogActivity`, an `ActivityAdapter` for the shared tracking framework (`fog-activity.ts`). The page (`apps/web/src/components/fog/FogWipe.tsx`) uses `createTracking` from `@vibecodemaxxing/vision` for palms and the game's design system for layout. Drag with the mouse if the tracker is unavailable. Design, tuning and the proposed contract changes for wiring it into the main game are in [docs/fog-wipe-mode.md](docs/fog-wipe-mode.md).
 
+## Six Seven (activity 03)
+
+```sh
+npm run dev
+# Open http://localhost:3000/sixseven
+```
+
+The third agent-phase activity, after the shower and the fog wipe: both palms up, rocking in anti-phase like a scale ("six... seven!"). The detector watches the vertical gap between the palms; every reversal with enough travel is a beat, beats alternate six and seven, and the turn score is `100 * min(1, beats / targetBeats)` with the target set by the turn length (1.6 beats a second). Hands moving together, a single hand, or one hand seen twice score nothing. The page runs one 15 s round on the camera or with synthetic hands for tuning.
+
+Engine side is pure and tested: `createSixSeven`, `applySixSevenSample`, `freezeSixSeven`, `sixSevenProgress`, `scoreSixSeven` in `packages/game-engine/src/sixseven.ts`, plus `createSixSevenActivity` for the shared tracking framework. The main game rotates `shower, fog, sixseven` per turn (`apps/web/src/components/design/activity.ts`) and renders `components/sixseven/SixSevenLayer.tsx` over the camera. Rules, tuning and file map in [docs/sixseven-mode.md](docs/sixseven-mode.md).
+
 ## Four owners, four workstreams
 
 | Owner | Owns | Deliverable and handoff |

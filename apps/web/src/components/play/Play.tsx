@@ -18,7 +18,8 @@ import { createFilth, filthAverage, type Filth } from "../camera/filth";
 /** Only the head gets dirty: wash your hair and face, the score follows those two zones. */
 const FILTHY_PARTS = ["hair", "face"] as const;
 import { activityForTurn, activityLabel } from "../design/activity";
-import { createFog, clearedFraction, type FogState } from "@vibecodemaxxing/game-engine";
+import { createFog, clearedFraction, createSixSeven, sixSevenProgress, type FogState, type SixSevenState } from "@vibecodemaxxing/game-engine";
+import { SixSevenLayer } from "../sixseven/SixSevenLayer";
 import { createDesignGame } from "../design/design-game";
 import { findSession } from "../design/session";
 import { readPlayer, saveResult, type PlayerChoice } from "../design/run-storage";
@@ -126,6 +127,9 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const fogRef = useRef<FogState>(createFog());
   const filthRef = useRef<Filth>(createFilth(FILTHY_PARTS));
   const [fogHands, setFogHands] = useState(0);
+  const sixSevenRef = useRef<SixSevenState>(createSixSeven({ targetBeats: 1 }));
+  const [sixSevenHands, setSixSevenHands] = useState(0);
+  const [sixSevenBeats, setSixSevenBeats] = useState(0);
 
   useEffect(() => {
     if (!practice) request();
@@ -141,6 +145,11 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
         game.ingestVision({ capturedAtMs: now, efficiency: clearedFraction(fogRef.current), confidence: 1, tracking: true });
         return;
       }
+      if (current.phase === "agent" && activityForTurn(current.turnIndex) === "sixseven") {
+        // Six seven turns report beats over the target; cumulative like the fog.
+        game.ingestVision({ capturedAtMs: now, efficiency: sixSevenProgress(sixSevenRef.current), confidence: 1, tracking: true });
+        return;
+      }
       if (practice) {
         // Practice shower: a fake body that gets clean over about 80% of the turn.
         const elapsed = current.phase === "agent" ? (now - current.agentStartedAtMs) / (current.agentEndsAtMs - current.agentStartedAtMs) : 0;
@@ -150,8 +159,10 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
       const frame = poseRef.current;
       if (!frame.capturedAtMs) return;
       // Shower turns score the fraction of filth washed off so far (cumulative, like the fog).
+      // Stamped with "now", not the tracker's frame time: at a few fps the frame time repeats
+      // and the engine would drop the samples as duplicates or stale.
       game.ingestVision({
-        capturedAtMs: frame.capturedAtMs,
+        capturedAtMs: now,
         efficiency: 1 - filthAverage(filthRef.current),
         confidence: 1,
         tracking: true,
@@ -195,12 +206,21 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const activity = activityForTurn(state.phase === "typing" || state.phase === "agent" ? state.turnIndex : state.completedTurns.length);
   const fogTurn = showering && activity === "fog";
   const showerTurn = showering && activity === "shower";
+  const sixSevenTurn = showering && activity === "sixseven";
   const fogTurnKey = fogTurn ? state.turnIndex : -1;
   const [fogKey, setFogKey] = useState(-1);
   if (fogTurnKey !== fogKey) {
     // A new fog turn gets a fresh grid; leaving the turn resets it so nothing leaks forward.
     fogRef.current = createFog();
     setFogKey(fogTurnKey);
+  }
+  const sixSevenTurnKey = sixSevenTurn ? state.turnIndex : -1;
+  const [sixSevenKey, setSixSevenKey] = useState(-1);
+  if (sixSevenTurnKey !== sixSevenKey) {
+    // A new six seven turn gets a fresh beat counter sized to the turn length.
+    sixSevenRef.current = createSixSeven({ durationMs: sixSevenTurn ? state.agentEndsAtMs - state.agentStartedAtMs : 1000 });
+    setSixSevenKey(sixSevenTurnKey);
+    setSixSevenBeats(0);
   }
   const showerTurnKey = showerTurn ? state.turnIndex : -1;
   const [showerKey, setShowerKey] = useState(-1);
@@ -211,7 +231,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   }
   const live = state.phase === "agent" ? state.liveEfficiency : 0;
   const agentMs = state.phase === "agent" ? state.agentEndsAtMs - state.agentStartedAtMs : 0;
-  const wet = showering && (activity === "fog" ? fogHands > 0 : water.inWater || practice);
+  const wet = showering && (activity === "fog" ? fogHands > 0 : activity === "sixseven" ? sixSevenHands === 2 : water.inWater || practice);
 
   const liveRef = useRef(live);
   liveRef.current = live;
@@ -266,6 +286,17 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
         >
           <PixiWater active={showering && activity === "shower"} onMove={water.setWaterX} />
           {fogTurn && <FogLayer key={fogKey} fog={fogRef.current} poseRef={poseRef} active practice={practice} onHands={setFogHands} />}
+          {sixSevenTurn && (
+            <SixSevenLayer
+              key={sixSevenKey}
+              state={sixSevenRef.current}
+              poseRef={poseRef}
+              active
+              practice={practice}
+              onHands={setSixSevenHands}
+              onBeat={(_, beats) => setSixSevenBeats(beats)}
+            />
+          )}
         </CameraView>
         <Card
           ref={showerRef}
@@ -290,15 +321,25 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
               {showering
                 ? activity === "fog"
                   ? wet ? "Wipe! Keep the hand moving." : "The camera fogged up. Wipe it with your hand."
+                  : activity === "sixseven"
+                    ? wet ? "Six! Seven! Keep them rocking." : "Both hands up, palms to the sky. Six... seven."
                   : wet
                     ? pose.zone && pose.scrub > 0.15
                       ? `Scrubbing your ${PLACEMENT_LABELS[pose.zone].toLowerCase()}.`
                       : "Under the water. Wash your head!"
                     : "Get your head under the water."
-                : activity === "fog" ? "Next up: wipe the camera." : "Shower is off while you type."}
+                : activity === "fog" ? "Next up: wipe the camera." : activity === "sixseven" ? "Next up: six seven." : "Shower is off while you type."}
             </p>
             {activity === "fog" ? (
               <Meter label="Cleared" value={live} onSpotlight={wet} />
+            ) : activity === "sixseven" ? (
+              <>
+                <Meter label="Six sevens" value={live} onSpotlight={wet} />
+                <div className={cn("grid gap-1.5 text-[13px] tabular-nums", wet ? "text-white/85" : "text-muted-foreground")}>
+                  <div className="flex justify-between"><span>Beats</span><span>{sixSevenBeats} / {sixSevenRef.current.targetBeats}</span></div>
+                  <div className="flex justify-between"><span>Streak</span><span>{sixSevenRef.current.streak}</span></div>
+                </div>
+              </>
             ) : (
               <>
                 <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />

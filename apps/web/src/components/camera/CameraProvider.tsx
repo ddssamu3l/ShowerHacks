@@ -36,6 +36,8 @@ export interface PosePoint extends Point {
 }
 
 export interface HandPoint extends Point {
+  /** Anatomical side from the tracker, independent of mirroring. */
+  side: "left" | "right";
   zone: BodyPart | null;
   /** Scored scrub strength from the vision package, 0..1. */
   intensity: number;
@@ -108,6 +110,7 @@ function toPoseFrame(frame: TrackingFrame, detector: PlacementScrubDetector, pre
     const scrub = motion.hands.find((item) => item.side === side);
     hands.push({
       ...mirror(hand.palm),
+      side,
       zone: scrub?.zone ?? null,
       intensity: scrub?.intensity ?? 0,
       speed: hand.palm.motion?.speed ?? 0,

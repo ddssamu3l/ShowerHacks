@@ -101,15 +101,19 @@ function trackShapes(filth: Filth, regions: readonly BodyRegion[], now: number) 
   for (const [part, shape] of filth.shapes) if (now - shape.seenAt > HOLD_MS) filth.shapes.delete(part);
 }
 
-/** Only scored scrubbing cleans: the same signal the shower score uses. */
+/** Scored scrubbing cleans at full rate; raw hand motion over a zone cleans at 60%. */
 export function scrubFilth(filth: Filth, hands: HandPoint[], dt: number, now: number, map: (point: Point) => Point) {
   for (const hand of hands) {
-    if (!hand.zone || hand.intensity <= 0) continue;
-    const parts: BodyPart[] = hand.zone === "hair" ? ["hair", "face"] : [hand.zone];
+    if (!hand.zone) continue;
+    // Scored scrubbing counts in full; plain hand motion over the zone also cleans, more slowly,
+    // so a hand rubbing the head at a slow tracker frame rate still makes progress.
+    const strength = Math.max(hand.intensity, Math.min(1, hand.speed / 1.5) * 0.6);
+    if (strength <= 0) continue;
+    const parts: BodyPart[] = hand.zone === "hair" || hand.zone === "face" ? ["hair", "face"] : [hand.zone];
     for (const part of parts) {
       const before = filth.level.get(part);
       if (before === undefined || before <= 0) continue;
-      const after = Math.max(0, before - hand.intensity * CLEAN_PER_SECOND * dt);
+      const after = Math.max(0, before - strength * CLEAN_PER_SECOND * dt);
       filth.level.set(part, after);
       const shape = filth.shapes.get(part);
       if (after === 0 && shape) filth.sparkles.push({ ...map(shape.center), bornAt: now });
