@@ -27,8 +27,10 @@ function mockHand(tMs: number): WipePoint {
   return { x, y };
 }
 
-/** Draw the fog grid onto the canvas, soft-edged. Cells are in raw video space. */
-function drawFog(canvas: HTMLCanvasElement, scratch: HTMLCanvasElement, fog: FogState, width: number, height: number, hands: readonly WipePoint[]) {
+interface SpongeCursor extends WipePoint { angle: number; moving: boolean }
+
+/** Draw the fog grid onto the canvas, soft-edged, then the sponge on each hand. Cells are in raw video space. */
+function drawFog(canvas: HTMLCanvasElement, scratch: HTMLCanvasElement, fog: FogState, width: number, height: number, hands: readonly SpongeCursor[], sponge: HTMLImageElement | null, tMs: number) {
   if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
   if (scratch.width !== fog.cols || scratch.height !== fog.rows) { scratch.width = fog.cols; scratch.height = fog.rows; }
   const small = scratch.getContext("2d");
@@ -52,13 +54,37 @@ function drawFog(canvas: HTMLCanvasElement, scratch: HTMLCanvasElement, fog: Fog
   ctx.restore();
 
   for (const p of hands) {
-    ctx.beginPath();
-    ctx.arc(p.x * width, p.y * height, Math.max(14, width / 40), 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(213,255,105,.85)"; ctx.lineWidth = 3; ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(p.x * width, p.y * height, 4, 0, Math.PI * 2);
-    ctx.fillStyle = "#d5ff69"; ctx.fill();
+    const cx = p.x * width, cy = p.y * height;
+    if (sponge && sponge.complete && sponge.naturalWidth > 0) {
+      const size = Math.max(72, width / 7);
+      const wobble = p.moving ? Math.sin(tMs / 60) * 0.12 : 0;
+      const squash = p.moving ? 1 + Math.sin(tMs / 60) * 0.06 : 1;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(p.angle + wobble);
+      ctx.scale(squash, 1 / squash);
+      ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 14; ctx.shadowOffsetY = 6;
+      ctx.drawImage(sponge, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(14, width / 40), 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(213,255,105,.85)"; ctx.lineWidth = 3; ctx.stroke();
+    }
   }
+}
+
+/** Turn raw hand points into sponge cursors: tilt toward the direction of travel, remember whether the hand is moving. */
+function toCursors(points: readonly WipePoint[], previous: readonly SpongeCursor[]): SpongeCursor[] {
+  return points.map((p, i) => {
+    const prev = previous[i];
+    if (!prev) return { ...p, angle: -0.35, moving: false };
+    const dx = p.x - prev.x, dy = p.y - prev.y;
+    const moving = dx * dx + dy * dy > 0.00004;
+    // Lean into the motion, capped so the sponge never flips upside down.
+    const target = moving ? Math.max(-0.7, Math.min(0.7, Math.atan2(dy, dx) * 0.35)) : -0.35;
+    return { ...p, angle: prev.angle + (target - prev.angle) * 0.35, moving };
+  });
 }
 
 export function FogArena() {
@@ -67,7 +93,8 @@ export function FogArena() {
   const scratchRef = useRef<HTMLCanvasElement | null>(null);
   const controller = useRef<VisionController | null>(null);
   const fogRef = useRef<FogState>(createFog());
-  const handsRef = useRef<WipePoint[]>([]);
+  const handsRef = useRef<SpongeCursor[]>([]);
+  const spongeRef = useRef<HTMLImageElement | null>(null);
   const session = useRef(0);
   const deadlineRef = useRef<number | null>(null);
   const mockTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -82,6 +109,8 @@ export function FogArena() {
   const [remainingMs, setRemainingMs] = useState(0);
   const [tracking, setTracking] = useState(false);
   const [inferenceMs, setInferenceMs] = useState<number | undefined>();
+  const [fps, setFps] = useState(0);
+  const frameTimes = useRef<number[]>([]);
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
   const initializing = status.state === "initializing";
@@ -96,7 +125,7 @@ export function FogArena() {
     const useVideo = mode === "camera" && video && video.videoWidth > 0;
     const w = useVideo ? video.videoWidth : canvas.clientWidth || 960;
     const h = useVideo ? video.videoHeight : canvas.clientHeight || 540;
-    drawFog(canvas, scratchRef.current, fogRef.current, w, h, handsRef.current);
+    drawFog(canvas, scratchRef.current, fogRef.current, w, h, handsRef.current, spongeRef.current, performance.now());
   }, [mode]);
 
   // Round clock: refog, deadline, live percentage, redraw.
@@ -126,11 +155,22 @@ export function FogArena() {
 
   useEffect(() => () => { session.current++; controller.current?.stop(); if (mockTimer.current) clearInterval(mockTimer.current); }, []);
 
+  useEffect(() => {
+    const image = new Image();
+    image.src = "/fog/sponge.png";
+    spongeRef.current = image;
+  }, []);
+
   const onFrame = useCallback((frame: VisionFrame) => {
     const points = handPoints(frame.landmarks);
-    handsRef.current = points;
+    handsRef.current = toCursors(points, handsRef.current);
     setTracking(points.length > 0);
     setInferenceMs(frame.inferenceMs);
+    const now = performance.now();
+    const times = frameTimes.current;
+    times.push(now);
+    while (times.length && now - times[0] > 1000) times.shift();
+    setFps(times.length);
     if (phase !== "wiping") return;
     applyWipe(fogRef.current, { capturedAtMs: frame.capturedAtMs, points, tracking: points.length > 0 }, performance.now());
   }, [phase]);
@@ -177,7 +217,7 @@ export function FogArena() {
       mockTimer.current = setInterval(() => {
         const t = performance.now();
         const p = mockHand(t - mockStart.current);
-        handsRef.current = [p]; setTracking(true);
+        handsRef.current = toCursors([p], handsRef.current); setTracking(true);
         if (deadlineRef.current !== null && t <= deadlineRef.current) {
           applyWipe(fogRef.current, { capturedAtMs: t, points: [p], tracking: true }, t);
         }
@@ -266,7 +306,7 @@ export function FogArena() {
     </div>
     <footer className={base.footer}>
       <div className={base.controls}><span className={base.smallLabel}>ENGINE: createFog / applyWipe / scoreFog · docs/fog-wipe-mode.md</span></div>
-      <div className={base.footerActions}>{(cameraReady || mode === "mock") && <><span className={base.telemetry}>{tracking ? "HAND LOCK" : "NO LOCK"}{inferenceMs ? ` · ${Math.round(inferenceMs)}ms` : ""}</span>{phase !== "idle" && <button onClick={resetRound}>RESET ROUND</button>}<button onClick={stopAll}>STOP</button></>}</div>
+      <div className={base.footerActions}>{(cameraReady || mode === "mock") && <><span className={base.telemetry}>{tracking ? "HAND LOCK" : "NO LOCK"}{mode === "camera" ? ` · ${fps} FPS` : ""}{inferenceMs ? ` · ${Math.round(inferenceMs)}ms` : ""}</span>{phase !== "idle" && <button onClick={resetRound}>RESET ROUND</button>}<button onClick={stopAll}>STOP</button></>}</div>
     </footer>
     <p className={base.footnote}>WIPE: move a hand across the fogged preview. Wrist and index finger are tracked. SCORE: fraction of the frame cleared at the deadline, 0–100, drops straight into the turn's activity slot.</p>
   </main>;
