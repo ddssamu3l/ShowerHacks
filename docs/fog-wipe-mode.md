@@ -45,14 +45,18 @@ fog.cells;                                        // Float32Array for the UI to 
 ```ts
 type WipeSample = {
   capturedAtMs: number;                 // performance.now() at frame capture
-  points: { x: number; y: number }[];   // hand centers, 0..1 in preview coordinates, already mirrored
+  points: { x: number; y: number }[];   // hand centers, 0..1 in raw video coordinates
   tracking: boolean;                    // false when no hand is visible
 };
 ```
 
+## Prototype
+
+`/fog` in the web app is a playable version: same Pose tracker as Scrub Fighter, fog canvas above the video, round timer, result screen, and a simulated hand for no-camera demos. `apps/web/src/app/fog/hand-points.ts` turns Pose landmarks (wrists 15/16, index tips 19/20) into `WipePoint`s. Both the video and the fog canvas are CSS-mirrored, so the engine works in raw video coordinates and nothing is flipped in code.
+
 ## What changes in the shared contract (proposal, not done)
 
-- `VisionSample` gets a sibling `WipeSample`, or the vision module exposes a second callback `onWipe`. Vision owner picks; the engine only needs hand centers.
+- Vision already exposes landmarks through `onFrame`; `handPoints` can move from the page into `packages/vision` as the official adapter so the engine never sees landmark indices.
 - `GameOptions` gets `activity: "shower" | "fog"`. Default `shower`.
 - `TurnResult.shower` becomes `TurnResult.activity`, a union: `{ kind: "shower", ... }` or `{ kind: "fog", clearedFraction, score }`. Leaderboard boards are keyed by session, version and scoring version already; add `activity` to the key so shower and fog runs do not compete on one board.
 - The `agent` state exposes `liveActivity: number` in place of `liveEfficiency` so the UI can show a live percentage for either mode.
@@ -61,7 +65,7 @@ type WipeSample = {
 
 MediaPipe Hands gives 21 landmarks per hand at webcam framerate in the browser. The hand center is the mean of the palm landmarks (0, 5, 9, 13, 17). Pose wrist landmarks work too if the vision module already runs Pose for shower mode, just noisier. Report up to two hands. Mirror x before reporting so the point matches what the player sees.
 
-The mock vision controller for this mode should sweep a point left to right, row by row, so the UI teammate can see fog clearing without a camera.
+The prototype page has its own simulated hand that sweeps row by row, so the UI teammate can see fog clearing without a camera.
 
 ## UI
 

@@ -42,6 +42,17 @@ Implementation and integration:
 
 Browser target: a current Chromium-based desktop browser, including Arc/Chrome, on localhost or HTTPS. The worker uses `OffscreenCanvas` and transferable `ImageBitmap`. The model and runtime are Apache-2.0 licensed; the worker bundle retains dependency license notices.
 
+## Fog Wipe prototype (activity 02)
+
+```sh
+npm run vision:dev         # same assets as Scrub Fighter
+# Open http://localhost:3000/fog
+```
+
+A second activity for the agent phase: the camera preview fogs over like a bathroom mirror and the player wipes it clear with a hand. Pick a round length (stands in for the agent's turn duration), press start, wipe. At the deadline the fog freezes and the turn score is the percentage cleared, 0..100, the same scale as the shower score. **Try the simulated hand** runs a synthetic sweep with no camera.
+
+Engine side is pure and tested: `createFog`, `applyWipe`, `advanceFog`, `freezeFog`, `scoreFog` in `packages/game-engine/src/fog.ts`. The page feeds it wrist/index landmarks from the existing Pose tracker through `apps/web/src/app/fog/hand-points.ts`; no new vision contract is needed. Design, tuning and the proposed contract changes for wiring it into the main game are in [docs/fog-wipe-mode.md](docs/fog-wipe-mode.md).
+
 ## Four owners, four workstreams
 
 | Owner | Owns | Deliverable and handoff |
