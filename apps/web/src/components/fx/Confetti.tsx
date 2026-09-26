@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
-const colors = ["#6a4cf5", "#d44df0", "#ff7a3d", "#ff5577", "#0099ff", "#ffffff"];
+const colors = ["#0099ff", "#000000", "#0a6fd6", "#ffffff", "#999999"];
 
 export function Confetti({ pieces = 44 }: { pieces?: number }) {
   const reduce = useReducedMotion();

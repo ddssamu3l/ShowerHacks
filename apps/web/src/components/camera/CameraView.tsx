@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { poseIndex, useCamera, type CameraStatus } from "./CameraProvider";
+import { poseIndex, useCamera, type CameraStatus, type Point } from "./CameraProvider";
+import { createFilth, drawFilth, filthAverage, scrubFilth } from "./filth";
 
 const statusCopy: Record<CameraStatus, string> = {
   idle: "Camera off",
@@ -11,13 +12,15 @@ const statusCopy: Record<CameraStatus, string> = {
   ready: "",
   blocked: "Camera blocked. Allow it in the address bar, then reload.",
   missing: "No camera found. Plug one in, then reload.",
-  "model-failed": "Body tracking didn't load. Check your connection, then reload.",
+  "model-failed": "Body tracking didn't load. Reload the page to try again.",
 };
 
 interface CameraViewProps {
   children?: ReactNode;
   className?: string;
   bubbles?: boolean;
+  /** Cover the player in filth that scrubbing under the water cleans off. */
+  dirty?: boolean;
   message?: string;
   onBodyX?: (x: number | null) => void;
 }
@@ -32,7 +35,7 @@ interface Bubble {
   color: string;
 }
 
-const bubbleColors = ["255, 255, 255", "0, 153, 255", "212, 77, 240"];
+const bubbleColors = ["255, 255, 255", "0, 153, 255"];
 
 export function CameraMessage({ children }: { children: ReactNode }) {
   return (
@@ -42,7 +45,7 @@ export function CameraMessage({ children }: { children: ReactNode }) {
   );
 }
 
-export function CameraView({ children, className, bubbles = false, message: override, onBodyX }: CameraViewProps) {
+export function CameraView({ children, className, bubbles = false, dirty = false, message: override, onBodyX }: CameraViewProps) {
   const { stream, status, poseRef } = useCamera();
   const frameRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -51,6 +54,19 @@ export function CameraView({ children, className, bubbles = false, message: over
   onBodyXRef.current = onBodyX;
   const bubblesOnRef = useRef(bubbles);
   bubblesOnRef.current = bubbles;
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+  const filthRef = useRef(createFilth());
+  const [filthy, setFilthy] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const timer = window.setInterval(() => {
+      const filth = filthRef.current;
+      setFilthy(filth.revealAt === null ? null : filthAverage(filth));
+    }, 200);
+    return () => window.clearInterval(timer);
+  }, [dirty]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -112,7 +128,7 @@ export function CameraView({ children, className, bubbles = false, message: over
       const pose = poseRef.current;
       const vw = video?.videoWidth || 0;
       const vh = video?.videoHeight || 0;
-      if (!pose.points || !vw || !vh) {
+      if (!vw || !vh) {
         onBodyXRef.current?.(null);
         drawFoam(ctx, dt);
         return;
@@ -121,43 +137,58 @@ export function CameraView({ children, className, bubbles = false, message: over
       const scale = Math.max(width / vw, height / vh);
       const offsetX = (width - vw * scale) / 2;
       const offsetY = (height - vh * scale) / 2;
-      const map = (index: number) => {
-        const point = pose.points![index];
-        return { x: offsetX + point.x * vw * scale, y: offsetY + point.y * vh * scale, visible: point.visible };
-      };
+      const map = (point: Point) => ({ x: offsetX + point.x * vw * scale, y: offsetY + point.y * vh * scale });
 
-      const nose = map(poseIndex.NOSE);
-      const left = map(poseIndex.LEFT_SHOULDER);
-      const right = map(poseIndex.RIGHT_SHOULDER);
-      onBodyXRef.current?.(pose.tracking ? (nose.x + left.x + right.x) / 3 / width : null);
+      onBodyXRef.current?.(pose.bodyX === null ? null : map({ x: pose.bodyX, y: 0 }).x / width);
 
-      if (pose.tracking) {
+      if (dirtyRef.current) {
+        if (bubblesOnRef.current) scrubFilth(filthRef.current, pose.hands ?? [], dt, nowMs, map);
+        drawFilth(ctx, filthRef.current, pose.regions, map, nowMs, reduce);
+      }
+
+      if (!pose.points) {
+        drawFoam(ctx, dt);
+        return;
+      }
+
+      const left = pose.points[poseIndex.LEFT_SHOULDER];
+      const right = pose.points[poseIndex.RIGHT_SHOULDER];
+      if (pose.tracking && left.visible && right.visible) {
+        const a = map(left);
+        const b = map(right);
         ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
         ctx.lineWidth = 2;
         ctx.setLineDash([4, 6]);
         ctx.beginPath();
-        ctx.moveTo(left.x, left.y);
-        ctx.lineTo(right.x, right.y);
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
         ctx.stroke();
         ctx.setLineDash([]);
       }
 
-      for (const index of [poseIndex.LEFT_WRIST, poseIndex.RIGHT_WRIST]) {
-        const wrist = map(index);
-        if (!wrist.visible) continue;
+      for (const hand of pose.hands) {
+        const palm = map(hand);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        for (const tip of hand.tips) {
+          const mapped = map(tip);
+          ctx.beginPath();
+          ctx.arc(mapped.x, mapped.y, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.strokeStyle = "rgba(0, 153, 255, 0.95)";
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(wrist.x, wrist.y, 14 + pose.scrub * 10, 0, Math.PI * 2);
+        const lather = Math.max(hand.intensity, Math.min(1, hand.speed / 1.2));
+        ctx.arc(palm.x, palm.y, 14 + lather * 10, 0, Math.PI * 2);
         ctx.stroke();
 
-        if (!reduce && bubblesOnRef.current && pose.scrub > 0.15 && foam.length < 140) {
-          const spawn = pose.scrub * 3;
+        if (!reduce && bubblesOnRef.current && lather > 0.15 && foam.length < 160) {
+          const spawn = lather * 3;
           for (let count = 0; count < spawn; count++) {
-            if (Math.random() > pose.scrub) continue;
+            if (Math.random() > lather) continue;
             foam.push({
-              x: wrist.x + (Math.random() - 0.5) * 30,
-              y: wrist.y + (Math.random() - 0.5) * 20,
+              x: palm.x + (Math.random() - 0.5) * 30,
+              y: palm.y + (Math.random() - 0.5) * 20,
               vx: (Math.random() - 0.5) * 40,
               vy: -30 - Math.random() * 60,
               r: 3 + Math.random() * 7,
@@ -185,6 +216,11 @@ export function CameraView({ children, className, bubbles = false, message: over
       )}
       <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 z-[1] size-full" />
       {children}
+      {dirty && filthy !== null && (
+        <span className="absolute top-3 left-3 z-[2] rounded-full bg-black/60 px-3 py-1 text-[13px] font-medium text-white tabular-nums backdrop-blur-md">
+          {filthy > 0.005 ? `\u{1F4A9} ${Math.ceil(filthy * 100)}% filthy` : "\u2728 Squeaky clean"}
+        </span>
+      )}
       {message && <CameraMessage>{message}</CameraMessage>}
     </div>
   );

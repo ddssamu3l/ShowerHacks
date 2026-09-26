@@ -25,7 +25,7 @@ function RankMark({ rank }: { rank: number }) {
       <span
         className={cn(
           "grid size-8 place-items-center rounded-full",
-          rank === 1 ? "spotlight-magenta text-white" : rank === 2 ? "spotlight-cartridge text-white" : "bg-heat/20 text-heat",
+          rank === 1 ? "bg-foreground text-black" : rank === 2 ? "bg-accent text-foreground ring-1 ring-border" : "bg-heat/20 text-heat",
         )}
         aria-label={`Rank ${rank}`}
       >
@@ -91,7 +91,7 @@ export function LeaderboardRankings({ title, description, entries, currentRunId,
                     )}
                   </span>
                   <span className="text-[13px] text-muted-foreground tabular-nums">
-                    <span className="text-violet-ink">Typing {Math.round(entry.typingScore)}</span> ·{" "}
+                    <span className="text-foreground">Typing {Math.round(entry.typingScore)}</span> ·{" "}
                     <span className="text-signal">Shower {Math.round(entry.showerScore)}</span>
                   </span>
                 </div>

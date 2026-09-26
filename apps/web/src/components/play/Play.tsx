@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import type { GameController, GameState } from "@vibecodemaxxing/contracts";
 import { Badge } from "@/components/ui/badge";
@@ -8,18 +8,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CameraView } from "../camera/CameraView";
+import { PLACEMENT_LABELS } from "@vibecodemaxxing/vision";
 import { useCamera, usePoseSnapshot } from "../camera/CameraProvider";
 import { PixiWater } from "../shower/PixiWater";
+import { FogLayer } from "../fog/FogLayer";
+import { activityForTurn, activityLabel } from "../design/activity";
+import { createFog, clearedFraction, type FogState } from "@vibecodemaxxing/game-engine";
 import { createDesignGame } from "../design/design-game";
 import { findSession } from "../design/session";
 import { readPlayer, saveResult, type PlayerChoice } from "../design/run-storage";
+import { Agents } from "./Agents";
 import { Transcript } from "./Transcript";
 import { Editor } from "./Editor";
 import { PromptDock } from "./PromptDock";
 import { useInWater } from "./useInWater";
-import { FogLayer } from "../fog/FogLayer";
-import { activityForTurn, activityLabel } from "../design/activity";
-import { createFog, clearedFraction, type FogState } from "@vibecodemaxxing/game-engine";
 import { AnimatedNumber } from "../fx/AnimatedNumber";
 import { FlyingPoints, centerOf, type Flight } from "../fx/FlyingPoints";
 import { PointPops, type Pop } from "../fx/PointPop";
@@ -65,7 +67,7 @@ function ScoreBar({ state, score, practice }: { state: GameState; score: Score; 
               key={index}
               className={cn(
                 "h-1.5 w-7 rounded-full transition-colors duration-300",
-                done ? "gradient-fill" : now ? (state.phase === "agent" ? "bg-signal" : "bg-violet-ink") : "bg-accent",
+                done ? "bg-foreground" : now ? (state.phase === "agent" ? "bg-signal" : "bg-foreground/45") : "bg-accent",
               )}
             />
           );
@@ -74,7 +76,7 @@ function ScoreBar({ state, score, practice }: { state: GameState; score: Score; 
       <dl className="flex gap-6">
         <div className="grid justify-items-end" data-fx="typing-score">
           <dt className="text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase">Typing</dt>
-          <dd className="font-mono text-xl text-violet-ink tabular-nums">
+          <dd className="font-mono text-xl tabular-nums">
             <AnimatedNumber value={score.typing} />
           </dd>
         </div>
@@ -103,6 +105,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const pose = usePoseSnapshot();
   const water = useInWater();
   const practice = player.inputMode === "mock";
+  const session = useMemo(() => findSession(player.sessionId), [player.sessionId]);
   const state = useGame(game);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [go, setGo] = useState(false);
@@ -115,6 +118,8 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const { later, every, stopEvery } = useTimers();
   const dockRef = useRef<HTMLElement>(null);
   const showerRef = useRef<HTMLDivElement>(null);
+  const fogRef = useRef<FogState>(createFog());
+  const [fogHands, setFogHands] = useState(0);
 
   useEffect(() => {
     if (!practice) request();
@@ -124,15 +129,15 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   useEffect(() => {
     const timer = window.setInterval(() => {
       const now = performance.now();
-      const practiceState = game.getState();
-      if (practice && !(practiceState.phase === "agent" && activityForTurn(practiceState.turnIndex) === "fog")) {
-        const efficiency = 0.55 + 0.35 * Math.sin(now / 700);
-        game.ingestVision({ capturedAtMs: now, efficiency, confidence: 1, tracking: true });
-        return;
-      }
       const current = game.getState();
       if (current.phase === "agent" && activityForTurn(current.turnIndex) === "fog") {
+        // Fog turns report the cleared fraction; the game keeps the last value as the turn score.
         game.ingestVision({ capturedAtMs: now, efficiency: clearedFraction(fogRef.current), confidence: 1, tracking: true });
+        return;
+      }
+      if (practice) {
+        const efficiency = 0.55 + 0.35 * Math.sin(now / 700);
+        game.ingestVision({ capturedAtMs: now, efficiency, confidence: 1, tracking: true });
         return;
       }
       const frame = poseRef.current;
@@ -140,7 +145,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
       game.ingestVision({
         capturedAtMs: frame.capturedAtMs,
         efficiency: isInWater() ? frame.scrub : 0,
-        confidence: frame.tracking ? 0.9 : 0,
+        confidence: frame.confidence,
         tracking: frame.tracking,
       });
     }, 66);
@@ -158,7 +163,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
     const showerFrom = centerOf(showerRef.current);
     const next: Flight[] = [];
     if (typingFrom && typingTo) {
-      next.push({ id: ++flightId.current, text: `+${Math.round(turn.typing.score)} typing`, from: typingFrom, to: typingTo, tone: "violet" });
+      next.push({ id: ++flightId.current, text: `+${Math.round(turn.typing.score)} typing`, from: typingFrom, to: typingTo, tone: "typing" });
     }
     if (showerFrom && showerTo) {
       next.push({ id: ++flightId.current, text: `+${Math.round(turn.shower.score)} ${activityLabel[activityForTurn(count - 1)].points}`, from: showerFrom, to: showerTo, tone: "water" });
@@ -181,12 +186,10 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const showering = state.phase === "agent";
   const activity = activityForTurn(state.phase === "typing" || state.phase === "agent" ? state.turnIndex : state.completedTurns.length);
   const fogTurn = showering && activity === "fog";
-  const [fogHands, setFogHands] = useState(0);
-  const fogRef = useRef<FogState>(createFog());
-  const fogTurnKey = fogTurn && state.phase === "agent" ? state.turnIndex : -1;
+  const fogTurnKey = fogTurn ? state.turnIndex : -1;
   const [fogKey, setFogKey] = useState(-1);
   if (fogTurnKey !== fogKey) {
-    // New fog turn: fresh grid. Cleared on every phase change so leftover fog never leaks into the next turn.
+    // A new fog turn gets a fresh grid; leaving the turn resets it so nothing leaks forward.
     fogRef.current = createFog();
     setFogKey(fogTurnKey);
   }
@@ -229,18 +232,28 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   return (
     <div
       className={cn(
-        // Pixel widths on both ends so the browser can interpolate: the camera glides wider,
-        // the agent panels slide off to the right. Column gap animates to zero with it.
-        "grid h-svh grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-3 transition-[grid-template-columns,column-gap] duration-[420ms] ease-[var(--ease-out)] max-lg:h-auto max-lg:grid-cols-1",
+        // Pixel widths on both ends so the browser can interpolate: while the agent works the
+        // side panels slide off to the right and the camera glides to full width.
+        "grid h-svh grid-rows-[auto_auto_minmax(0,1fr)] gap-3 p-3 transition-[grid-template-columns,column-gap] duration-[420ms] ease-[var(--ease-out)] max-lg:h-auto max-lg:grid-cols-1",
         showering ? "grid-cols-[minmax(0,1fr)_0px] gap-x-0" : "grid-cols-[minmax(0,1fr)_380px]",
       )}
     >
       <ScoreBar state={state} score={shownScore} practice={practice} />
+      <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
+        <PromptDock
+          state={state}
+          countdown={countdown}
+          go={go}
+          onStart={start}
+          onSubmit={(text, keystrokes) => game.submitPrompt(text, keystrokes)}
+        />
+      </section>
       <section className="relative min-h-0 max-lg:aspect-[4/3]" aria-label="Your shower">
         <CameraView
           className="aspect-auto size-full"
           onBodyX={water.setBodyX}
           bubbles={wet}
+          dirty={!practice}
           message={practice ? "Practice mode. The shower scores itself." : undefined}
         >
           <PixiWater active={showering && activity === "shower"} onMove={water.setWaterX} />
@@ -251,7 +264,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           className={cn(
             "absolute bottom-4 left-4 z-10 w-[min(300px,calc(100%-2rem))] overflow-visible rounded-[20px] transition-[background-color,box-shadow] duration-300",
             wet
-              ? "spotlight-water bg-[#0a6fd6] text-white ring-0"
+              ? "bg-water text-white ring-0"
               : "bg-black/60 ring-white/10 backdrop-blur-md",
             showering && !wet && "ring-signal/50",
           )}
@@ -269,7 +282,11 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
               {showering
                 ? activity === "fog"
                   ? wet ? "Wipe! Keep the hand moving." : "The camera fogged up. Wipe it with your hand."
-                  : wet ? "Under the water. Scrub!" : "Get under the water."
+                  : wet
+                    ? pose.zone && pose.scrub > 0.15
+                      ? `Scrubbing your ${PLACEMENT_LABELS[pose.zone].toLowerCase()}.`
+                      : "Under the water. Scrub!"
+                    : "Get under the water."
                 : activity === "fog" ? "Next up: wipe the camera." : "Shower is off while you type."}
             </p>
             {activity === "fog" ? (
@@ -288,23 +305,20 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           "min-h-0 min-w-0 overflow-hidden transition-opacity duration-[260ms] ease-[var(--ease-out)] max-lg:overflow-visible",
           showering && "pointer-events-none opacity-0 max-lg:hidden",
         )}
-        aria-label="Coding agent"
+        aria-label="Coding agents"
         aria-hidden={showering}
       >
-       <div className="grid h-full w-[380px] grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)] gap-3 max-lg:w-auto max-lg:grid-rows-none">
-        <Transcript entries={state.transcript} working={showering} />
-        <Editor entries={state.transcript} />
-       </div>
+        <div
+          className={cn(
+            "grid h-full w-[380px] gap-3 max-lg:w-auto max-lg:grid-rows-none",
+            session.agents ? "grid-rows-[auto_minmax(0,1.6fr)_minmax(0,1fr)]" : "grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)]",
+          )}
+        >
+          <Agents session={session} state={state} />
+          <Transcript entries={state.transcript} working={showering} agents={session.agents} />
+          <Editor entries={state.transcript} />
+        </div>
       </aside>
-      <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
-        <PromptDock
-          state={state}
-          countdown={countdown}
-          go={go}
-          onStart={start}
-          onSubmit={(text) => game.submitPrompt(text)}
-        />
-      </section>
       <FlyingPoints flights={flights} onDone={(id) => setFlights((current) => current.filter((flight) => flight.id !== id))} />
     </div>
   );

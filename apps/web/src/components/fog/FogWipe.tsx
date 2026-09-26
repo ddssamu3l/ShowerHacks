@@ -338,7 +338,7 @@ export function FogWipe() {
 
           {phase === "done" && (
             <div className="absolute inset-0 z-[3] grid place-items-center bg-black/60 backdrop-blur-sm">
-              <Card className="spotlight-water w-[min(420px,calc(100%-2rem))] rounded-[20px] text-white ring-0">
+              <Card className="bg-water w-[min(420px,calc(100%-2rem))] rounded-[20px] text-white ring-0">
                 <CardContent className="grid gap-4 text-center">
                   <p className="text-[13px] font-medium tracking-[0.06em] text-white/80 uppercase">Agent finished</p>
                   <p className="font-display text-[clamp(3.5rem,8vw,5.5rem)] leading-none font-medium tracking-[-0.05em]">
@@ -359,7 +359,7 @@ export function FogWipe() {
 
         <Card className={cn(
           "absolute bottom-4 left-4 z-10 w-[min(300px,calc(100%-2rem))] overflow-visible rounded-[20px] transition-[background-color,box-shadow] duration-300",
-          hot ? "spotlight-water text-white ring-0" : "bg-black/60 ring-white/10 backdrop-blur-md",
+          hot ? "bg-water text-white ring-0" : "bg-black/60 ring-white/10 backdrop-blur-md",
           wiping && !hot && "ring-signal/50",
         )}>
           <CardContent className="grid gap-3">

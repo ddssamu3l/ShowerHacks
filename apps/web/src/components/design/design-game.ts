@@ -10,16 +10,12 @@ import {
   type TypingResult,
   type VisionSample,
 } from "@vibecodemaxxing/contracts";
-import { scoreTyping as engineScoreTyping } from "@vibecodemaxxing/game-engine";
+import { scoreTyping } from "@vibecodemaxxing/game-engine";
 import { activityForTurn } from "./activity";
 
 // Design stand-in for `createGame` from @vibecodemaxxing/game-engine. It follows the README's
-// timing and scoring rules closely enough to lay out every phase; swap it out when the engine lands.
-
-// Typing is scored by the real engine (scoring v2); only the game loop below is a stand-in.
-export function scoreTyping(target: string, submitted: string, durationMs: number): TypingResult {
-  return engineScoreTyping({ target, submitted, durationMs });
-}
+// timing rules closely enough to lay out every phase; swap it out when createGame lands.
+// Typing is already scored by the engine's scoreTyping.
 
 function sampleValue(sample: VisionSample) {
   return sample.tracking && sample.confidence >= SCORING.minimumVisionConfidence ? sample.efficiency : 0;
@@ -50,7 +46,7 @@ function finalizeFog(samples: VisionSample[], start: number, end: number) {
   const duration = end - start;
   const last = samples.at(-1);
   const cleared = last ? sampleValue(last) : 0;
-  const covered = samples.length ? Math.min(duration, (last!.capturedAtMs - samples[0].capturedAtMs) + SCORING.maximumVisionSampleAgeMs) : 0;
+  const covered = samples.length ? Math.min(duration, last!.capturedAtMs - samples[0].capturedAtMs + SCORING.maximumVisionSampleAgeMs) : 0;
   return { durationMs: duration, averageEfficiency: cleared, trackingCoverage: duration > 0 ? covered / duration : 0, score: 100 * cleared };
 }
 
@@ -156,8 +152,7 @@ export function createDesignGame({ session, nickname, inputMode, now = () => per
       if (current < end) return;
       // Fog wipe is cumulative: the turn's score is the last reported cleared fraction,
       // not the time average that the shower uses.
-      const activity = activityForTurn(turnIndex);
-      const shower = activity === "fog" ? finalizeFog(samples, agentStartedAt, end) : integrateShower(samples, agentStartedAt, end);
+      const shower = activityForTurn(turnIndex) === "fog" ? finalizeFog(samples, agentStartedAt, end) : integrateShower(samples, agentStartedAt, end);
       completed.push({ turnId: turn.id, typing: typingResult!, shower });
       samples = [];
       if (turnIndex === session.turns.length - 1) {
@@ -190,13 +185,13 @@ export function createDesignGame({ session, nickname, inputMode, now = () => per
       timer = setInterval(tick, 100);
       emit();
     },
-    submitPrompt(text) {
+    submitPrompt(text, keystrokes) {
       if (disposed) return false;
       catchUp();
       if (phase !== "typing" || text.length === 0) return false;
       const turn = session.turns[turnIndex];
       const submittedAt = now();
-      typingResult = scoreTyping(turn.prompt, text, submittedAt - typingStartedAt);
+      typingResult = scoreTyping({ target: turn.prompt, submitted: text, durationMs: submittedAt - typingStartedAt, keystrokes });
       transcript = [...transcript, { kind: "user", id: `${turn.id}-prompt`, turnId: turn.id, text }];
       phase = "agent";
       agentStartedAt = submittedAt;

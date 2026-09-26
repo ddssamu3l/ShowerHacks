@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import type { AgentEvent, TranscriptEntry } from "@vibecodemaxxing/contracts";
+import type { AgentDefinition, AgentEvent, TranscriptEntry } from "@vibecodemaxxing/contracts";
 import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -11,8 +11,15 @@ type ToolResult = Extract<AgentEvent, { type: "tool_result" }>;
 
 const enter = "animate-[rise_260ms_cubic-bezier(0.2,0.8,0.2,1)]";
 
-export function Transcript({ entries, working }: { entries: readonly TranscriptEntry[]; working: boolean }) {
+interface TranscriptProps {
+  entries: readonly TranscriptEntry[];
+  working: boolean;
+  agents?: readonly AgentDefinition[];
+}
+
+export function Transcript({ entries, working, agents }: TranscriptProps) {
   const endRef = useRef<HTMLDivElement>(null);
+  const names = useMemo(() => new Map(agents?.map((agent) => [agent.id, agent.name])), [agents]);
 
   const results = useMemo(() => {
     const map = new Map<string, ToolResult>();
@@ -29,7 +36,7 @@ export function Transcript({ entries, working }: { entries: readonly TranscriptE
   if (entries.length === 0) {
     return (
       <Card className="min-h-0 items-center justify-center rounded-[20px]">
-        <p className="text-muted-foreground">The agent is waiting for your first prompt.</p>
+        <p className="text-muted-foreground">{agents && agents.length > 1 ? "The agents are" : "The agent is"} waiting for your first prompt.</p>
       </Card>
     );
   }
@@ -54,7 +61,9 @@ export function Transcript({ entries, working }: { entries: readonly TranscriptE
             if (event.type === "assistant_message") {
               return (
                 <div key={event.id} className={`grid max-w-[88%] gap-1 ${enter}`}>
-                  <span className="text-xs font-medium text-muted-foreground">Agent</span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {(event.agentId && names.get(event.agentId)) ?? "Agent"}
+                  </span>
                   <p className="text-[15px] leading-[1.4]">{event.text}</p>
                 </div>
               );
@@ -64,7 +73,10 @@ export function Transcript({ entries, working }: { entries: readonly TranscriptE
               return (
                 <div key={event.id} className={`grid gap-2 rounded-[10px] bg-background p-3 ring-1 ring-border ${enter}`}>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="font-medium">{event.tool}</span>
+                    <span className="font-medium">
+                      {event.agentId && names.get(event.agentId) ? `${names.get(event.agentId)} · ` : ""}
+                      {event.tool}
+                    </span>
                     <motion.span
                       key={result?.status ?? "pending"}
                       initial={{ opacity: 0, transform: "scale(0.85)" }}

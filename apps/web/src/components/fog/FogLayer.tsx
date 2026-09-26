@@ -3,11 +3,10 @@
 import { useEffect, useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from "react";
 import { applyWipe, advanceFog, type FogState, type WipePoint } from "@vibecodemaxxing/game-engine";
 import type { PoseFrame } from "../camera/CameraProvider";
-import { poseIndex } from "../camera/CameraProvider";
 
 /**
  * Fog overlay for the main game's camera frame. Works in display space: the fog
- * grid covers the visible frame, and pose wrists (already mirrored by CameraProvider)
+ * grid covers the visible frame, and palms from CameraProvider (already mirrored)
  * are mapped through the same object-cover math CameraView uses. Drag with the
  * mouse to wipe when tracking is unavailable. Practice mode sweeps a synthetic hand.
  */
@@ -82,13 +81,11 @@ export function FogLayer({ fog, poseRef, active, practice, onHands }: FogLayerPr
           const pose = poseRef.current;
           const video = canvas.parentElement?.querySelector("video");
           const vw = video?.videoWidth || 0, vh = video?.videoHeight || 0;
-          if (pose.points && vw && vh) {
+          if (vw && vh) {
             const scale = Math.max(width / vw, height / vh);
             const offX = (width - vw * scale) / 2, offY = (height - vh * scale) / 2;
-            for (const index of [poseIndex.LEFT_WRIST, poseIndex.RIGHT_WRIST]) {
-              const p = pose.points[index];
-              if (!p?.visible) continue;
-              points.push({ x: (offX + p.x * vw * scale) / width, y: (offY + p.y * vh * scale) / height });
+            for (const hand of pose.hands) {
+              points.push({ x: (offX + hand.x * vw * scale) / width, y: (offY + hand.y * vh * scale) / height });
             }
           }
         }
