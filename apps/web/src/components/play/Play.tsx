@@ -238,7 +238,9 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
       )}
     >
       <ScoreBar state={state} score={shownScore} practice={practice} />
-      <section className="relative min-w-0 min-h-[360px] lg:min-h-[320px]" aria-label="Your shower">
+      <section className="relative grid min-h-[360px] min-w-0 place-items-center [container-type:size] lg:min-h-[320px]" aria-label="Your shower">
+        {/* Keep the camera at 16:9 inside whatever the grid gives us, so object-cover never crops into a zoom. */}
+        <div className="relative aspect-[16/9] w-[min(100%,calc(100cqh*16/9))]">
         <CameraView
           className="aspect-auto size-full"
           onBodyX={water.setBodyX}
@@ -289,6 +291,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
             )}
           </CardContent>
         </Card>
+        </div>
       </section>
       <aside
         className={cn(
