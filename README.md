@@ -2,7 +2,7 @@
 
 A hackathon game about typing increasingly unhinged prompts while a fake coding agent makes increasingly stupid mistakes. Type while the agent waits; pretend to shower while it works. Highest score wins.
 
-This repository is the team scaffold and shared contract. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are provided. **Gameplay, camera inference, and leaderboard routes still need to be implemented by their owners below.** There are no real LLM calls or executed agent commands.
+This repository contains the team scaffold, shared contract, and a working **Scrub Fighter webcam prototype at `/vision`**. The Next.js landing page, TypeScript interfaces, session validator, editor JSON Schema, and one complete example session are also provided. **The main scripted gameplay and leaderboard routes still need implementation by their owners below.** There are no real LLM calls or executed agent commands.
 
 ## Run the scaffold
 
@@ -18,6 +18,29 @@ npm run build               # session validation + production Next.js build
 ```
 
 The web app uses the Next.js App Router and React; local TypeScript packages are compiled by Next.js. This follows the [official Next.js installation guidance](https://nextjs.org/docs/app/getting-started/installation). No database, API key, or separate backend process is needed. The intended demo deployment is one persistent Node.js server with a writable local disk.
+
+## Scrub Fighter webcam prototype
+
+```sh
+npm ci
+npm run vision:dev         # Prepare local model assets + start Next.js
+# Open http://localhost:3000/vision
+npm run test:vision        # Motion-detection and arcade-scoring tests
+```
+
+Click **Enable Camera**, allow webcam access, and frame your head, shoulders, and arms. Rub your chest, opposite upper arm, hair, or an armpit with that arm raised. Repeated rubbing lands hits; changing zones chains combos. The overlay marks body joints, candidate wash zones, and progress toward the next hit. Enable sound for arcade bleeps. Stop the camera to adjust sensitivity, then restart. **Try the animated demo** runs synthetic movement through the same detector with no camera; it is explicitly labeled simulated.
+
+This is a standalone, continuous free-play concept with point popups, ranks, a 6.5-second combo window, a multiplier capped at ×2.5, and repeated-zone rewards falling to 65%, 30%, then 15%. Alternating just two zones caps the multiplier at ×1.5. Scores are local to the current run and are not submitted to the leaderboard. The production game's normalized scoring contract below is unchanged; its owner can integrate wash events and decide how to incorporate combos into the timed game.
+
+Implementation and integration:
+
+- `packages/vision/src/controller.ts` implements `createVision`; a classic Web Worker runs MediaPipe Pose Full away from the typing/UI thread. It attempts GPU inference, then CPU if GPU initialization fails. Only one frame is in flight, at up to 20 Hz. Capture timestamps come from the main browser clock. Camera tracks and the worker are released on stop, including cancelled startup.
+- `detector.ts` works on landmarks in a shoulder-relative coordinate system. It requires proximity plus sustained back-and-forth/circular motion, ignores tiny jitter and pose jumps, and prefers the moving hand over a resting hand. Detection estimates visible overlap, not physical skin contact. Framing, fast movement, and occlusion affect accuracy; tune with real webcam play.
+- `createVision` and `createMockVision` remain compatible with `VisionFactory`. Their optional `ArcadeVisionOptions.onFrame(frame)` exposes zone/progress/landmarks for feedback, and `onWash(event)` emits `{ zone, capturedAtMs, intensity, confidence }`. Types are exported from `@vibecodemaxxing/vision`. The existing `onSample` callback still emits the original `VisionSample` contract, with raw scrub intensity as efficiency and no combo multiplier. The main engine must gate wash events by agent phase and own its combo state.
+- `packages/vision/src/arcade.ts` contains the prototype's separate scoring reducer (`@vibecodemaxxing/vision/arcade`). `apps/web/src/app/vision/` owns only the temporary playground UI. Main-game pages and engine implementations are independent.
+- `npm run vision:prepare` downloads the versioned [MediaPipe Pose Full model](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker), copies WASM files from the pinned npm dependency, and bundles `pose.worker.ts`. Generated assets live in gitignored `apps/web/public/vision-assets/`. Rerun after worker/dependency changes, and before deploying the vision page. Once prepared, the prototype loads assets locally and uploads no camera frames. The first preparation needs internet access.
+
+Browser target: a current Chromium-based desktop browser, including Arc/Chrome, on localhost or HTTPS. The worker uses `OffscreenCanvas` and transferable `ImageBitmap`. The model and runtime are Apache-2.0 licensed; the worker bundle retains dependency license notices.
 
 ## Four owners, four workstreams
 
@@ -47,7 +70,7 @@ packages/
     src/constants.ts       # Versioned scoring defaults
     session.schema.json    # Generated JSON Schema for editors; do not hand-edit
   game-engine/src/index.ts # Reserved export: createGame (not implemented yet)
-  vision/src/index.ts      # Reserved exports: createVision, createMockVision
+  vision/src/index.ts      # Implemented createVision, createMockVision + feedback types
 content/sessions/
   ship-it.json             # Copy this complete three-turn example
 scripts/                   # Session/schema tooling
