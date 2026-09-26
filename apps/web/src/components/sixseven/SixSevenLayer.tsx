@@ -163,9 +163,9 @@ export function SixSevenLayer({ state, poseRef, active, practice, onHands, onBea
         ctx.textBaseline = "middle";
         ctx.lineWidth = 8;
         ctx.strokeStyle = "rgba(0,0,0,.6)";
-        ctx.strokeText(word, width / 2, height * 0.22 - rise);
+        ctx.strokeText(word, width / 2, height * 0.14 - rise);
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(word, width / 2, height * 0.22 - rise);
+        ctx.fillText(word, width / 2, height * 0.14 - rise);
         ctx.restore();
       }
 
