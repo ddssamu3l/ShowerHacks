@@ -68,6 +68,10 @@ export interface TrackingOptions {
   onStatus: (status: VisionStatus) => void;
   now?: () => number;
   assetBase?: string;
+  /** Results older than this on arrival count as no detection. Default 250 ms; raise for slow CPU inference. */
+  maxFrameAgeMs?: number;
+  /** Which inference delegate each model ended up on, reported once the worker is ready. */
+  onInfo?: (info: { delegates: { pose: "GPU" | "CPU"; hands?: "GPU" | "CPU" } }) => void;
 }
 export type TrackingController = VisionController;
 export type TrackingFactory = (options: TrackingOptions) => TrackingController;

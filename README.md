@@ -130,6 +130,17 @@ function beginActivityWindow(targetId: string | null) {
 
 Reference implementation: `scrub-activity.ts` consumes the shared frame, `scrub-motion.ts` measures motion relative to each body region, and `challenge.ts` owns three-second scheduling/combos using the shared scorer. Motion uses both hands independently and takes the stronger qualifying scrub, capped at 1. Hair/face placements both count toward the Head prompt. `TrackingFrameBuilder.process(...)` accepts raw pose/hand landmarks for tests or alternate camera backends; `drawTrackingOverlay(...)` is optional rendering. Keep mock runs out of the real leaderboard using `TrackingFrame.inputMode`.
 
+## Fog Wipe prototype (activity 02)
+
+```sh
+npm run vision:dev         # same assets as Scrub Fighter
+# Open http://localhost:3000/fog
+```
+
+A second activity for the agent phase: the camera preview fogs over like a bathroom mirror and the player wipes it clear with a hand. Pick a round length (stands in for the agent's turn duration), press start, wipe. At the deadline the fog freezes and the turn score is the percentage cleared, 0..100, the same scale as the shower score. **Try the simulated hand** runs a synthetic sweep with no camera.
+
+Engine side is pure and tested: `createFog`, `applyWipe`, `advanceFog`, `freezeFog`, `scoreFog` in `packages/game-engine/src/fog.ts`, plus `createFogActivity`, an `ActivityAdapter` for the shared tracking framework (`fog-activity.ts`). The page (`apps/web/src/components/fog/FogWipe.tsx`) uses `createTracking` from `@vibecodemaxxing/vision` for palms and the game's design system for layout. Drag with the mouse if the tracker is unavailable. Design, tuning and the proposed contract changes for wiring it into the main game are in [docs/fog-wipe-mode.md](docs/fog-wipe-mode.md).
+
 ## Four owners, four workstreams
 
 | Owner | Owns | Deliverable and handoff |

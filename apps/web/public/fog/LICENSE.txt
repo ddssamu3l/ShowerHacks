@@ -1,0 +1,4 @@
+sponge.png is the "Sponge" 3D emoji from Microsoft Fluent Emoji
+https://github.com/microsoft/fluentui-emoji (assets/Sponge/3D/sponge_3d.png)
+
+MIT License, Copyright (c) Microsoft Corporation.

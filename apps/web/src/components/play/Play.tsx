@@ -11,6 +11,9 @@ import { CameraView } from "../camera/CameraView";
 import { PLACEMENT_LABELS } from "@vibecodemaxxing/vision";
 import { useCamera, usePoseSnapshot } from "../camera/CameraProvider";
 import { PixiWater } from "../shower/PixiWater";
+import { FogLayer } from "../fog/FogLayer";
+import { activityForTurn, activityLabel } from "../design/activity";
+import { createFog, clearedFraction, type FogState } from "@vibecodemaxxing/game-engine";
 import { createDesignGame } from "../design/design-game";
 import { findSession } from "../design/session";
 import { readPlayer, saveResult, type PlayerChoice } from "../design/run-storage";
@@ -115,6 +118,8 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   const { later, every, stopEvery } = useTimers();
   const dockRef = useRef<HTMLElement>(null);
   const showerRef = useRef<HTMLDivElement>(null);
+  const fogRef = useRef<FogState>(createFog());
+  const [fogHands, setFogHands] = useState(0);
 
   useEffect(() => {
     if (!practice) request();
@@ -124,6 +129,12 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   useEffect(() => {
     const timer = window.setInterval(() => {
       const now = performance.now();
+      const current = game.getState();
+      if (current.phase === "agent" && activityForTurn(current.turnIndex) === "fog") {
+        // Fog turns report the cleared fraction; the game keeps the last value as the turn score.
+        game.ingestVision({ capturedAtMs: now, efficiency: clearedFraction(fogRef.current), confidence: 1, tracking: true });
+        return;
+      }
       if (practice) {
         const efficiency = 0.55 + 0.35 * Math.sin(now / 700);
         game.ingestVision({ capturedAtMs: now, efficiency, confidence: 1, tracking: true });
@@ -155,7 +166,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
       next.push({ id: ++flightId.current, text: `+${Math.round(turn.typing.score)} typing`, from: typingFrom, to: typingTo, tone: "typing" });
     }
     if (showerFrom && showerTo) {
-      next.push({ id: ++flightId.current, text: `+${Math.round(turn.shower.score)} shower`, from: showerFrom, to: showerTo, tone: "water" });
+      next.push({ id: ++flightId.current, text: `+${Math.round(turn.shower.score)} ${activityLabel[activityForTurn(count - 1)].points}`, from: showerFrom, to: showerTo, tone: "water" });
     }
     setFlights((current) => [...current, ...next]);
     const score = state.score;
@@ -173,9 +184,18 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   }, [state, router, stop, later]);
 
   const showering = state.phase === "agent";
+  const activity = activityForTurn(state.phase === "typing" || state.phase === "agent" ? state.turnIndex : state.completedTurns.length);
+  const fogTurn = showering && activity === "fog";
+  const fogTurnKey = fogTurn ? state.turnIndex : -1;
+  const [fogKey, setFogKey] = useState(-1);
+  if (fogTurnKey !== fogKey) {
+    // A new fog turn gets a fresh grid; leaving the turn resets it so nothing leaks forward.
+    fogRef.current = createFog();
+    setFogKey(fogTurnKey);
+  }
   const live = state.phase === "agent" ? state.liveEfficiency : 0;
   const agentMs = state.phase === "agent" ? state.agentEndsAtMs - state.agentStartedAtMs : 0;
-  const wet = showering && (water.inWater || practice);
+  const wet = showering && (activity === "fog" ? fogHands > 0 : water.inWater || practice);
 
   const liveRef = useRef(live);
   liveRef.current = live;
@@ -210,7 +230,14 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
   }, [game, every, stopEvery, later]);
 
   return (
-    <div className="grid h-svh grid-cols-[minmax(0,1fr)_minmax(300px,380px)] grid-rows-[auto_auto_minmax(0,1fr)] gap-3 p-3 max-lg:h-auto max-lg:grid-cols-1">
+    <div
+      className={cn(
+        // Pixel widths on both ends so the browser can interpolate: while the agent works the
+        // side panels slide off to the right and the camera glides to full width.
+        "grid h-svh grid-rows-[auto_auto_minmax(0,1fr)] gap-3 p-3 transition-[grid-template-columns,column-gap] duration-[420ms] ease-[var(--ease-out)] max-lg:h-auto max-lg:grid-cols-1",
+        showering ? "grid-cols-[minmax(0,1fr)_0px] gap-x-0" : "grid-cols-[minmax(0,1fr)_380px]",
+      )}
+    >
       <ScoreBar state={state} score={shownScore} practice={practice} />
       <section ref={dockRef} className="col-span-2 max-lg:col-span-1" aria-label="Prompt">
         <PromptDock
@@ -229,7 +256,8 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
           dirty={!practice}
           message={practice ? "Practice mode. The shower scores itself." : undefined}
         >
-          <PixiWater active={showering} onMove={water.setWaterX} />
+          <PixiWater active={showering && activity === "shower"} onMove={water.setWaterX} />
+          {fogTurn && <FogLayer key={fogKey} fog={fogRef.current} poseRef={poseRef} active practice={practice} onHands={setFogHands} />}
         </CameraView>
         <Card
           ref={showerRef}
@@ -252,28 +280,44 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
               )}
             >
               {showering
-                ? wet
-                  ? pose.zone && pose.scrub > 0.15
-                    ? `Scrubbing your ${PLACEMENT_LABELS[pose.zone].toLowerCase()}.`
-                    : "Under the water. Scrub!"
-                  : "Get under the water."
-                : "Shower is off while you type."}
+                ? activity === "fog"
+                  ? wet ? "Wipe! Keep the hand moving." : "The camera fogged up. Wipe it with your hand."
+                  : wet
+                    ? pose.zone && pose.scrub > 0.15
+                      ? `Scrubbing your ${PLACEMENT_LABELS[pose.zone].toLowerCase()}.`
+                      : "Under the water. Scrub!"
+                    : "Get under the water."
+                : activity === "fog" ? "Next up: wipe the camera." : "Shower is off while you type."}
             </p>
-            <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />
-            <Meter label="This shower" value={live} onSpotlight={wet} />
+            {activity === "fog" ? (
+              <Meter label="Cleared" value={live} onSpotlight={wet} />
+            ) : (
+              <>
+                <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />
+                <Meter label="This shower" value={live} onSpotlight={wet} />
+              </>
+            )}
           </CardContent>
         </Card>
       </section>
       <aside
         className={cn(
-          "grid min-h-0 gap-3 max-lg:grid-rows-none",
-          session.agents ? "grid-rows-[auto_minmax(0,1.6fr)_minmax(0,1fr)]" : "grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)]",
+          "min-h-0 min-w-0 overflow-hidden transition-opacity duration-[260ms] ease-[var(--ease-out)] max-lg:overflow-visible",
+          showering && "pointer-events-none opacity-0 max-lg:hidden",
         )}
         aria-label="Coding agents"
+        aria-hidden={showering}
       >
-        <Agents session={session} state={state} />
-        <Transcript entries={state.transcript} working={showering} agents={session.agents} />
-        <Editor entries={state.transcript} />
+        <div
+          className={cn(
+            "grid h-full w-[380px] gap-3 max-lg:w-auto max-lg:grid-rows-none",
+            session.agents ? "grid-rows-[auto_minmax(0,1.6fr)_minmax(0,1fr)]" : "grid-rows-[minmax(0,1.6fr)_minmax(0,1fr)]",
+          )}
+        >
+          <Agents session={session} state={state} />
+          <Transcript entries={state.transcript} working={showering} agents={session.agents} />
+          <Editor entries={state.transcript} />
+        </div>
       </aside>
       <FlyingPoints flights={flights} onDone={(id) => setFlights((current) => current.filter((flight) => flight.id !== id))} />
     </div>
