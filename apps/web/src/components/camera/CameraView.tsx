@@ -148,7 +148,8 @@ export function CameraView({ children, className, bubbles = false, dirty = false
 
       if (dirtyRef.current) {
         const state = currentFilth();
-        if (bubblesOnRef.current) scrubFilth(state, pose.hands ?? [], dt, nowMs, map);
+        const nose = pose.points?.[poseIndex.NOSE];
+        if (bubblesOnRef.current) scrubFilth(state, pose.hands ?? [], dt, nowMs, map, nose?.visible ? nose : null);
         drawFilth(ctx, state, pose.regions, map, nowMs, reduce);
       }
 

@@ -25,6 +25,8 @@ interface Shape {
 export interface Filth {
   /** Body parts that get filthy; everything else stays clean and is ignored by the score. Undefined = all. */
   parts?: readonly BodyPart[];
+  /** Last seen palm per hand side, for our own speed estimate that survives a slow tracker. */
+  trail: Map<string, { x: number; y: number; at: number }>;
   level: Map<BodyPart, number>;
   splats: Map<BodyPart, Splat[]>;
   poops: Map<BodyPart, Point>;
@@ -72,7 +74,11 @@ function makeSplats(part: BodyPart): Splat[] {
 }
 
 export function createFilth(parts?: readonly BodyPart[]): Filth {
-  return { parts, level: new Map(), splats: new Map(), poops: new Map(), shapes: new Map(), sparkles: [], revealAt: null };
+  const filth: Filth = { parts, trail: new Map(), level: new Map(), splats: new Map(), poops: new Map(), shapes: new Map(), sparkles: [], revealAt: null };
+  // Named parts are filthy from the start, even before the tracker has drawn their region,
+  // so the score is defined the moment the turn begins.
+  for (const part of parts ?? []) ensure(filth, part);
+  return filth;
 }
 
 function ensure(filth: Filth, part: BodyPart) {
@@ -101,15 +107,34 @@ function trackShapes(filth: Filth, regions: readonly BodyRegion[], now: number) 
   for (const [part, shape] of filth.shapes) if (now - shape.seenAt > HOLD_MS) filth.shapes.delete(part);
 }
 
-/** Scored scrubbing cleans at full rate; raw hand motion over a zone cleans at 60%. */
-export function scrubFilth(filth: Filth, hands: HandPoint[], dt: number, now: number, map: (point: Point) => Point) {
+/** Max gap between two sightings of a hand that still yields a speed, ms. Slow CPU trackers run at 3-4 fps. */
+const TRAIL_MAX_GAP_MS = 700;
+/** Palm within this many frame heights of the nose counts as "on the head" even when the body regions are missing. */
+const HEAD_RADIUS = 0.28;
+
+/**
+ * Scored scrubbing cleans at full rate; plain hand motion over a zone cleans at 70%.
+ * Speed is measured here from consecutive palm positions (tolerant of slow trackers),
+ * and a hand near the nose counts as washing the head even if the tracker has no body regions.
+ */
+export function scrubFilth(filth: Filth, hands: HandPoint[], dt: number, now: number, map: (point: Point) => Point, head?: Point | null) {
+  const headPx = head ? map(head) : null;
+  const frameHeight = map({ x: 0, y: 1 }).y - map({ x: 0, y: 0 }).y || 1;
   for (const hand of hands) {
-    if (!hand.zone) continue;
-    // Scored scrubbing counts in full; plain hand motion over the zone also cleans, more slowly,
-    // so a hand rubbing the head at a slow tracker frame rate still makes progress.
-    const strength = Math.max(hand.intensity, Math.min(1, hand.speed / 1.5) * 0.6);
-    if (strength <= 0) continue;
-    const parts: BodyPart[] = hand.zone === "hair" || hand.zone === "face" ? ["hair", "face"] : [hand.zone];
+    const key = hand.side ?? "hand";
+    const px = map(hand);
+    const previous = filth.trail.get(key);
+    filth.trail.set(key, { x: px.x, y: px.y, at: now });
+    let ownSpeed = 0; // frame heights per second
+    if (previous && now - previous.at > 0 && now - previous.at <= TRAIL_MAX_GAP_MS) {
+      ownSpeed = Math.hypot(px.x - previous.x, px.y - previous.y) / frameHeight / ((now - previous.at) / 1000);
+    }
+    const nearHead = headPx ? Math.hypot(px.x - headPx.x, px.y - headPx.y) / frameHeight < HEAD_RADIUS : false;
+    const zone: BodyPart | null = hand.zone ?? (nearHead ? "hair" : null);
+    if (!zone) continue;
+    const strength = Math.max(hand.intensity, Math.min(1, Math.max(hand.speed, ownSpeed) / 0.5) * 0.7);
+    if (strength <= 0.02) continue;
+    const parts: BodyPart[] = zone === "hair" || zone === "face" ? ["hair", "face"] : [zone];
     for (const part of parts) {
       const before = filth.level.get(part);
       if (before === undefined || before <= 0) continue;
@@ -119,6 +144,7 @@ export function scrubFilth(filth: Filth, hands: HandPoint[], dt: number, now: nu
       if (after === 0 && shape) filth.sparkles.push({ ...map(shape.center), bornAt: now });
     }
   }
+  for (const [key, seen] of filth.trail) if (now - seen.at > TRAIL_MAX_GAP_MS) filth.trail.delete(key);
 }
 
 export function filthAverage(filth: Filth) {

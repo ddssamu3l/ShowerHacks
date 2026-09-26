@@ -131,10 +131,8 @@ function toPoseFrame(frame: TrackingFrame, detector: PlacementScrubDetector, pre
     points,
     tracking: frame.body.tracked,
     confidence: frame.body.confidence,
-    bodyX:
-      frame.body.tracked && anchors.length
-        ? 1 - anchors.reduce((sum, point) => sum + point.x, 0) / anchors.length
-        : null,
+    // Nose alone is enough to know where the player stands; shoulders are often out of frame up close.
+    bodyX: anchors.length ? 1 - anchors.reduce((sum, point) => sum + point.x, 0) / anchors.length : null,
     handsVisible: hands.length > 0,
     hands,
     scrub: previousScrub + ((best?.intensity ?? 0) - previousScrub) * 0.45,
