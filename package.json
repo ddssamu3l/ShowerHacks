@@ -21,7 +21,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace @vibecodemaxxing/web",
     "validate:sessions": "tsx scripts/validate-sessions.ts",
     "schema:generate": "tsx scripts/generate-session-schema.ts",
-    "test": "vitest run"
+    "test": "vitest run && npm run test:vision"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
