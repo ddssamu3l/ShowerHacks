@@ -36,4 +36,6 @@ export interface ArcadeVisionOptions extends VisionOptions {
   onWash?: (event: WashEvent) => void;
   sensitivity?: number; // 0.6..1.6, higher accepts gentler movement
   assetBase?: string;
+  /** Results older than this on arrival are treated as no detection. Default 250 ms; raise for slow CPU inference. */
+  maxFrameAgeMs?: number;
 }

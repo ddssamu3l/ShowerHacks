@@ -76,7 +76,7 @@ export function createVision(options: ArcadeVisionOptions): VisionController {
           if (data.type === "ready") { done(); resolve(); return; }
           if (data.type === "error") { done(); if (!running) reject(new Error(data.message)); else fail(data.message); return; }
           busy = false;
-          const fresh = now() - data.capturedAtMs <= 250;
+          const fresh = now() - data.capturedAtMs <= (options.maxFrameAgeMs ?? 250);
           if (options.mode === "placement") {
             const frame = placement.process(fresh ? data.landmarks : [], fresh ? data.hands : [], data.capturedAtMs, options.video.videoWidth, options.video.videoHeight);
             frame.inferenceMs = data.inferenceMs;

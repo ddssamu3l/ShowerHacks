@@ -68,6 +68,8 @@ export interface TrackingOptions {
   onStatus: (status: VisionStatus) => void;
   now?: () => number;
   assetBase?: string;
+  /** Results older than this on arrival count as no detection. Default 250 ms; raise for slow CPU inference. */
+  maxFrameAgeMs?: number;
 }
 export type TrackingController = VisionController;
 export type TrackingFactory = (options: TrackingOptions) => TrackingController;

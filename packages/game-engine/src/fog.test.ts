@@ -106,6 +106,15 @@ describe("applyWipe", () => {
     expect(applyWipe(fog, sample(0.6, 0.5, 1200), 1300)).toBe(true);
   });
 
+  it("fills the gap between two far-apart samples of the same hand", () => {
+    const fog = createFog();
+    applyWipe(fog, sample(0.1, 0.5, 100));
+    applyWipe(fog, sample(0.9, 0.5, 400)); // one jump across the frame, like a 3 fps tracker
+    expect(fog.cells[9 * 32 + 16]).toBeLessThan(1); // middle of the row got wiped too
+    const row = Array.from({ length: 32 }, (_, c) => fog.cells[9 * 32 + c]);
+    expect(row.slice(3, 29).every((v) => v < 1)).toBe(true);
+  });
+
   it("two hands wipe two spots", () => {
     const fog = createFog();
     applyWipe(fog, { capturedAtMs: 100, points: [{ x: 0.2, y: 0.5 }, { x: 0.8, y: 0.5 }], tracking: true });

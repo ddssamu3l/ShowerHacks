@@ -181,6 +181,7 @@ export function FogWipe() {
     setStatus({ state: "initializing" });
     const tracker = createTracking({
       video: videoRef.current,
+      maxFrameAgeMs: 600, // CPU inference can take ~300 ms per frame; a late hand still wipes.
       onStatus: (value) => { if (generation === session.current) setStatus(value); },
       onFrame: (frame) => { if (generation === session.current) onFrameRef.current(frame); },
     });

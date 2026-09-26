@@ -107,8 +107,20 @@ export function applyWipe(fog: FogState, sample: WipeSample, nowMs?: number): bo
   }
 
   const points = sample.points.filter(inFrame);
-  const moved = points.filter((p) => hasMoved(p, fog.lastPoints, fog.config.minMoveDistance));
-  for (const p of moved) wipeAt(fog, p);
+  points.forEach((p, i) => {
+    if (!hasMoved(p, fog.lastPoints, fog.config.minMoveDistance)) return;
+    // Low frame rates leave gaps between samples: wipe along the segment from the
+    // previous position of the same hand, one stamp every half radius.
+    const prev = fog.lastPoints[i];
+    const step = fog.config.wipeRadius / 2;
+    const d = prev ? Math.sqrt(dist2(prev, p)) : 0;
+    if (prev && d > step) {
+      const n = Math.min(24, Math.ceil(d / step));
+      for (let k = 1; k <= n; k++) wipeAt(fog, { x: prev.x + (p.x - prev.x) * (k / n), y: prev.y + (p.y - prev.y) * (k / n) });
+    } else {
+      wipeAt(fog, p);
+    }
+  });
   fog.lastPoints = points;
   return true;
 }
