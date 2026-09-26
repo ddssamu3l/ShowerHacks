@@ -1,0 +1,8 @@
+@import "../../web/src/app/globals.css";
+
+@source "../../web/src/components/ui";
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 2rem;
+}

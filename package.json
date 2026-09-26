@@ -15,6 +15,7 @@
     "vision:dev": "npm run vision:prepare && npm run dev",
     "test:vision": "node --import tsx --test packages/vision/src/*.test.ts",
     "dev": "npm run dev --workspace @vibecodemaxxing/web",
+    "brand": "npm run dev --workspace @vibecodemaxxing/brand",
     "build": "npm run validate:sessions && npm run build --workspace @vibecodemaxxing/web",
     "start": "npm run start --workspace @vibecodemaxxing/web",
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace @vibecodemaxxing/web",

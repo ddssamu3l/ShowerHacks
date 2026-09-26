@@ -1,6 +1,237 @@
-:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #111218; color: #faf8ef; }
-body { margin: 0; }
-main { min-height: 100svh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding: clamp(24px, 8vw, 120px); }
-h1 { font-size: clamp(2.75rem, 8vw, 7rem); line-height: 1; letter-spacing: -0.06em; margin: 16px 0; }
-p { font-size: 1.15rem; color: #bcbeca; }
-.eyebrow { color: #d9ff76; }
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Colors, type, and radii follow the Framer DESIGN.md in apps/web/DESIGN.md. */
+
+@theme inline {
+  --font-sans: "Inter", "Inter Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Mona Sans", "Mona Sans Fallback", "Inter", ui-sans-serif, sans-serif;
+  --font-display: "Mona Sans", "Mona Sans Fallback", "Inter", ui-sans-serif, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-signal: var(--signal);
+  --color-success: var(--success);
+  --color-violet-ink: #a594ff;
+  --color-magenta-ink: #e58af7;
+  --color-heat: #ff7a3d;
+  --color-miss: #ff5577;
+  --color-spotlight-violet: #6a4cf5;
+  --color-spotlight-magenta: #d44df0;
+  --color-spotlight-orange: #ff7a3d;
+  --color-spotlight-coral: #ff5577;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-3xl: calc(var(--radius) * 3);
+  --radius-4xl: calc(var(--radius) * 4);
+}
+
+:root {
+  color-scheme: dark;
+  --background: #090909;
+  --foreground: #ffffff;
+  --card: #141414;
+  --card-foreground: #ffffff;
+  --popover: #1c1c1c;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #141414;
+  --secondary-foreground: #ffffff;
+  --muted: #1c1c1c;
+  --muted-foreground: #999999;
+  --accent: #1c1c1c;
+  --accent-foreground: #ffffff;
+  --destructive: #ff5577;
+  --border: #262626;
+  --input: #262626;
+  --ring: #0099ff;
+  --signal: #0099ff;
+  --success: #22c55e;
+  --radius: 0.625rem;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv01", "cv05", "cv09", "cv11", "ss03", "ss07";
+    letter-spacing: -0.01em;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  .font-mono {
+    font-feature-settings: normal;
+    letter-spacing: 0;
+  }
+}
+
+@layer components {
+  .char-pending {
+    color: #5c5c5c;
+  }
+
+  .char-right {
+    color: var(--foreground);
+  }
+
+  .char-wrong {
+    color: var(--destructive);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+
+  .char[data-caret] {
+    box-shadow: inset 2px 0 0 var(--signal);
+  }
+
+  .char-end {
+    display: inline-block;
+    width: 2px;
+  }
+
+  /* Each Framer spotlight gradient has one job: violet typing, blue-violet water,
+     violet-magenta the picked session, magenta-orange celebration. */
+  .spotlight {
+    background:
+      radial-gradient(120% 90% at 0% 0%, var(--color-spotlight-magenta) 0%, transparent 60%),
+      radial-gradient(120% 120% at 100% 100%, var(--color-spotlight-orange) 0%, transparent 55%),
+      var(--color-spotlight-violet);
+  }
+
+  .spotlight-violet {
+    background:
+      radial-gradient(90% 140% at 0% 0%, #8a6dff 0%, transparent 60%),
+      radial-gradient(80% 120% at 100% 100%, #3b25b8 0%, transparent 70%),
+      var(--color-spotlight-violet);
+  }
+
+  .spotlight-water {
+    background:
+      radial-gradient(110% 120% at 0% 0%, #22b4ff 0%, transparent 62%),
+      radial-gradient(100% 120% at 100% 100%, var(--color-spotlight-violet) 0%, transparent 70%),
+      #0a6fd6;
+  }
+
+  .spotlight-cartridge {
+    background:
+      radial-gradient(110% 130% at 100% 0%, var(--color-spotlight-magenta) 0%, transparent 60%),
+      var(--color-spotlight-violet);
+  }
+
+  .spotlight-magenta {
+    background:
+      radial-gradient(110% 130% at 0% 100%, var(--color-spotlight-orange) 0%, transparent 60%),
+      var(--color-spotlight-magenta);
+  }
+
+  .on-spotlight .char-pending {
+    color: rgb(255 255 255 / 0.45);
+  }
+
+  .on-spotlight .char-wrong {
+    color: #ffc2cf;
+  }
+
+  .on-spotlight .char[data-caret] {
+    box-shadow: inset 2px 0 0 #ffffff;
+  }
+
+  .gradient-fill {
+    background: linear-gradient(90deg, var(--color-spotlight-violet), var(--color-spotlight-magenta));
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes shake {
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes nudge {
+  0%,
+  70%,
+  100% {
+    transform: translateX(0);
+  }
+  78% {
+    transform: translateX(-3px);
+  }
+  86% {
+    transform: translateX(3px);
+  }
+  94% {
+    transform: translateX(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
