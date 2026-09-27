@@ -17,7 +17,7 @@ import {
 } from "@vibecodemaxxing/contracts";
 import { scoreTyping, scoreDefinition, quizForTurn } from "@vibecodemaxxing/game-engine";
 
-// Design stand-in for `createGame` from @vibecodemaxxing/game-engine. It follows the README's
+// Design stand-in for `createGame` from @vibecodemaxxing/game-engine. It follows the technical guide's
 // timing rules closely enough to lay out every phase; swap it out when createGame lands.
 // Typing is already scored by the engine's scoreTyping.
 

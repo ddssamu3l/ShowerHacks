@@ -1,7 +1,9 @@
 # Agent handoff
 
-Read this before changing the game. [`README.md`](README.md) is the full team contract (sessions, engine,
-vision, scoring); this file covers the playable UI that now sits on top of it and what to build next.
+Read this before changing the game. [`docs/technical-guide.md`](docs/technical-guide.md) is the full team
+contract (sessions, engine, vision, scoring); this file covers the playable UI that now sits on top of it and
+what to build next. [`README.md`](README.md) is the plain-language overview for people and judges; keep it
+free of implementation detail.
 Next.js in `apps/web` has its own rules in [`apps/web/AGENTS.md`](apps/web/AGENTS.md).
 
 ## Run it
@@ -19,11 +21,11 @@ with a fake shower.
 ## What exists
 
 - **Screens:** lobby (`/`), play (`/play`), results (`/results`) in `apps/web/src/components/{lobby,play,results}`.
-- **Game loop:** `components/design/design-game.ts` is a stand-in for `createGame`. It follows the README
-  timing rules and already scores typing with the engine's `scoreTyping` (keystrokes included, so pause
+- **Game loop:** `components/design/design-game.ts` is a stand-in for `createGame`. It follows the technical
+  guide's timing rules and already scores typing with the engine's `scoreTyping` (keystrokes included, so pause
   and backspace penalties apply). Replace it with `createGame` from `@vibecodemaxxing/game-engine` when
   that lands; keep the `GameController` interface.
-- **Definition quizzes:** The playable loop alternates quizzes and typing. Quiz state/timing belongs to the design controller; `/api/quiz/judge` grades against server-only references. See README “Definition sprint” for API key setup, scoring, and handoff.
+- **Definition quizzes:** The playable loop alternates quizzes and typing. Quiz state/timing belongs to the design controller; `/api/quiz/judge` grades against server-only references. See the technical guide's “Definition sprint” for API key setup, scoring, and handoff.
 - **Sessions:** `commit-to-love` (10 prompts, three agents) and `ship-it` (3 prompts), loaded in
   `components/design/session.ts`. The agent strip (`play/Agents.tsx`) uses `getAgentWindows`.
 - **Camera:** `components/camera/CameraProvider.tsx` wraps `createTracking` from `@vibecodemaxxing/vision`
@@ -64,6 +66,6 @@ Other options are in [`docs/ideas.md`](docs/ideas.md).
 ## Rules that keep the game working
 
 - The engine owns phases, timing, and points. The UI renders snapshots and never advances the game.
-- Keep `@vibecodemaxxing/contracts` changes coordinated; update the README with them.
+- Keep `@vibecodemaxxing/contracts` changes coordinated; update `docs/technical-guide.md` with them.
 - Keep the flat brand: check `npm run brand` before adding a color or a gradient.
 - Run typecheck, tests, and session validation before pushing.

@@ -21,7 +21,7 @@ clearedFraction = 1 - mean(cellFog)          # over all cells, at the agent dead
 fog             = 100 * clearedFraction
 ```
 
-Same 0..100 scale as the shower score, so the run total formula in the README does not change: `total = round(100 * (0.5 * typing + 0.5 * activity))`. A 10-second turn and a 30-second turn are both scored on what fraction you cleared, so long turns are not free points, but they do give more time to reach 100.
+Same 0..100 scale as the shower score, so the run total formula in the [technical guide](technical-guide.md) does not change: `total = round(100 * (0.5 * typing + 0.5 * activity))`. A 10-second turn and a 30-second turn are both scored on what fraction you cleared, so long turns are not free points, but they do give more time to reach 100.
 
 Cell fog goes from 1 (opaque) to 0 (clear). Each wipe sample subtracts `wipeStrength` at the hand center and less towards the edge of `wipeRadius`, linearly. Default strength 0.45 and radius 0.09 of frame width, so a spot needs about three passes. Simulated at 15 samples a second with a hand sweeping row by row at a natural pace, steady wiping clears about 60% in 6 s, 80% in 10 s and 90% in 15 s. Getting to 100 means going back over the corners and the strips between rows, so a 12 to 16 second agent turn rewards effort without handing out full marks.
 

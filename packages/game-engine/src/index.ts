@@ -50,7 +50,7 @@ export {
 export { createSixSevenActivity, type SixSevenActivity, type SixSevenActivityOptions } from "./sixseven-activity";
 
 // Game owner: implement and export `createGame: GameFactory` here.
-// Timing, scoring, and lifecycle rules are specified in the root README.
+// Timing, scoring, and lifecycle rules are specified in docs/technical-guide.md.
 // Per-turn typing scoring is `scoreTyping` above; call it from submitPrompt.
 
 export { getAgentWindows, type AgentWindow } from "./agent-windows";
