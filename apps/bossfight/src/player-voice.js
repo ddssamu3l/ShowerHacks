@@ -44,12 +44,13 @@ export class PlayerVoice {
     const [min, max] = PLAYER_VOICE.cooldown, id = this.picker.next();
     this.nextAt = now + min + this.random() * (max - min);
     const voice = this.context.createBufferSource(); voice.buffer = this.buffers.get(id); voice.connect(this.gain); this.voice = voice;
-    voice.onended = () => { if (this.voice !== voice) return; this.voice = null; voice.disconnect(); this.onSpeaking(false); };
-    this.onSpeaking(true); voice.start();
+    voice.onended = () => { if (this.voice !== voice) return; this.voice = null; voice.disconnect(); this.onSpeaking(false, id, true); };
+    this.onSpeaking(true, id); voice.start();
     return id;
   }
+  // Reports onSpeaking(false, null, false): cut off by a pause or boss callout, not a natural end.
   stop() {
     const voice = this.voice; if (!voice) return;
-    this.voice = null; try { voice.stop(); } catch {} voice.disconnect(); this.onSpeaking(false);
+    this.voice = null; try { voice.stop(); } catch {} voice.disconnect(); this.onSpeaking(false, null, false);
   }
 }

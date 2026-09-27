@@ -259,5 +259,7 @@ kbd { border: 1px solid #9d865142; border-radius: 0; padding: 3px 5px; font-size
 .name-tag.down { opacity: .5; }
 .boss-line { position: absolute; bottom: 226px; left: 50%; transform: translateX(-50%); width: min(660px, 65vw); padding: 10px 30px; color: #e2cda5; font-size: 25px; font-style: italic; text-align: center; line-height: 1.4; text-shadow: 0 2px 5px #000, 0 0 14px #000; background: linear-gradient(90deg, transparent, #0d0804a6 20%, #0d0804a6 80%, transparent); opacity: 0; transition: opacity .25s; }
 .boss-line.speaking { opacity: 1; }
+.player-line { color: #d6ecef; font-size: 22px; background: linear-gradient(90deg, transparent, #04090ba6 20%, #04090ba6 80%, transparent); }
+.player-line .speaker { display: block; margin-bottom: 2px; color: #8fc4cc; font-family: 'Cinzel', Georgia, serif; font-size: 10px; font-style: normal; letter-spacing: 2.2px; }
 @media (max-width: 780px) { .boss-line { bottom: 250px; width: 85vw; font-size: 21px; } }
 @media (max-height: 760px) { .boss-line { bottom: 204px; font-size: 22px; } }

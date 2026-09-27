@@ -28,15 +28,15 @@ test('voice waits for the opening, rolls a chance, then holds a long cooldown', 
   serveAudio(t);
   let rolls = [];
   const context = fakeContext(), speaking = [];
-  const voice = new PlayerVoice(context, {}, { random: () => rolls.length ? rolls.shift() : .1, onSpeaking: s => speaking.push(s) });
+  const voice = new PlayerVoice(context, {}, { random: () => rolls.length ? rolls.shift() : .1, onSpeaking: (...args) => speaking.push(args) });
   await voice.ready; assert.equal(voice.buffers.size, ids.length);
   voice.reset(0);
   assert.equal(voice.attack(PLAYER_VOICE.firstDelay - .1), null, 'quiet at the start of the fight');
   const first = voice.attack(PLAYER_VOICE.firstDelay);
-  assert.ok(ids.includes(first)); assert.deepEqual(speaking, [true]); assert.equal(context.sources.at(-1).started, true);
+  assert.ok(ids.includes(first)); assert.deepEqual(speaking, [[true, first]]); assert.equal(context.sources.at(-1).started, true);
   const cooldown = voice.nextAt - PLAYER_VOICE.firstDelay;
   assert.ok(cooldown >= PLAYER_VOICE.cooldown[0] && cooldown <= PLAYER_VOICE.cooldown[1]);
-  context.sources.at(-1).onended(); assert.deepEqual(speaking, [true, false]);
+  context.sources.at(-1).onended(); assert.deepEqual(speaking.at(-1), [false, first, true], 'natural end lets the caption linger');
   assert.equal(voice.attack(voice.nextAt - .1), null, 'no line during the cooldown');
   const missAt = voice.nextAt;
   rolls = [.9];
@@ -48,11 +48,13 @@ test('voice waits for the opening, rolls a chance, then holds a long cooldown', 
 test('player never talks over the boss, and pause cuts him off', async t => {
   serveAudio(t);
   let bossTalking = true;
-  const voice = new PlayerVoice(fakeContext(), {}, { random: () => .1, busy: () => bossTalking });
+  const calls = [];
+  const voice = new PlayerVoice(fakeContext(), {}, { random: () => .1, busy: () => bossTalking, onSpeaking: (...args) => calls.push(args) });
   await voice.ready; voice.reset(0);
   assert.equal(voice.attack(100), null);
   bossTalking = false; assert.ok(voice.attack(100));
   const source = voice.voice; voice.stop(); assert.equal(source.stopped, true); assert.equal(voice.voice, null);
+  assert.deepEqual(calls.at(-1), [false, null, false], 'a cut-off line clears the caption at once');
   source.onended(); assert.equal(voice.voice, null, 'a late end event is ignored');
 });
 

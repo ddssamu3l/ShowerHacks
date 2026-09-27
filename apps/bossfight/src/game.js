@@ -9,7 +9,7 @@ import { BottlePickups } from './bottle-pickups.js';
 import { BossSpells, SPELLS } from './boss-spells.js';
 import { spellTouches, DIVE, diveDestination } from './spell-rules.js';
 import { BossAudio } from './boss-audio.js';
-import { PlayerVoice } from './player-voice.js';
+import { PlayerVoice, PLAYER_LINES } from './player-voice.js';
 import { BOSS_WALK, walkContacts, walkCyclesForDistance } from './boss-walk.js';
 import { Footfalls, playFootfall, playStompImpact } from './footfalls.js';
 import { stompContact } from './stomp.js';
@@ -99,11 +99,23 @@ function initAudio() {
     waterGain = audio.createGain(); waterGain.gain.value = 0; noise.connect(filter).connect(waterGain).connect(audioMaster); noise.start();
     soundtrack = new BossAudio(audio, audioMaster, text => {
       $('boss-line').textContent = text; $('boss-line').classList.toggle('speaking', !!text);
+      if (text) playerCaption(null);
     });
-    playerVoice = new PlayerVoice(audio, audioMaster, { busy: () => !!soundtrack.voice, onSpeaking: speaking => soundtrack.setPlayerSpeaking(speaking) });
+    playerVoice = new PlayerVoice(audio, audioMaster, { busy: () => !!soundtrack.voice, onSpeaking: (speaking, id, finished) => {
+      soundtrack.setPlayerSpeaking(speaking);
+      playerCaption(speaking ? PLAYER_LINES[id] : null, finished ? PLAYER_CAPTION_LINGER : 0);
+    } });
     soundtrack.onSpeak = () => playerVoice.stop();
   }
   audio.resume(); soundtrack.setPlaying(phase === 'fight');
+}
+// His lines last ~1.2 s, so the caption stays up a little longer to be readable.
+const PLAYER_CAPTION_LINGER = 1100;
+let playerCaptionTimer = 0;
+function playerCaption(text, delay = 0) {
+  clearTimeout(playerCaptionTimer);
+  const show = () => { if (text) $('player-line-text').textContent = text; $('player-line').classList.toggle('speaking', !!text); };
+  if (!text && delay) playerCaptionTimer = setTimeout(show, delay); else show();
 }
 function setAudioUI() {
   if (audioMaster) audioMaster.gain.setTargetAtTime(muted ? 0 : masterVolume, audio.currentTime, .03);
