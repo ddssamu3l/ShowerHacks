@@ -342,7 +342,7 @@ function PlayScreen({ player, game }: { player: PlayerChoice; game: GameControll
               </>
             ) : (
               <>
-                <Meter label="Scrubbing" value={practice ? live : pose.scrub} onSpotlight={wet} />
+                <Meter label="Scrubbing" value={practice ? live : Math.max(pose.scrub, filthRef.current.strength)} onSpotlight={wet} />
                 <Meter label="Head washed" value={live} onSpotlight={wet} />
               </>
             )}

@@ -27,6 +27,8 @@ export interface Filth {
   parts?: readonly BodyPart[];
   /** Last seen palm per hand side, for our own speed estimate that survives a slow tracker. */
   trail: Map<string, { x: number; y: number; at: number }>;
+  /** Effective washing strength right now, 0..1, smoothed. What the "Scrubbing" meter shows. */
+  strength: number;
   level: Map<BodyPart, number>;
   splats: Map<BodyPart, Splat[]>;
   poops: Map<BodyPart, Point>;
@@ -74,7 +76,7 @@ function makeSplats(part: BodyPart): Splat[] {
 }
 
 export function createFilth(parts?: readonly BodyPart[]): Filth {
-  const filth: Filth = { parts, trail: new Map(), level: new Map(), splats: new Map(), poops: new Map(), shapes: new Map(), sparkles: [], revealAt: null };
+  const filth: Filth = { parts, trail: new Map(), strength: 0, level: new Map(), splats: new Map(), poops: new Map(), shapes: new Map(), sparkles: [], revealAt: null };
   // Named parts are filthy from the start, even before the tracker has drawn their region,
   // so the score is defined the moment the turn begins.
   for (const part of parts ?? []) ensure(filth, part);
@@ -120,6 +122,7 @@ const HEAD_RADIUS = 0.28;
 export function scrubFilth(filth: Filth, hands: HandPoint[], dt: number, now: number, map: (point: Point) => Point, head?: Point | null) {
   const headPx = head ? map(head) : null;
   const frameHeight = map({ x: 0, y: 1 }).y - map({ x: 0, y: 0 }).y || 1;
+  let best = 0;
   for (const hand of hands) {
     const key = hand.side ?? "hand";
     const px = map(hand);
@@ -133,6 +136,7 @@ export function scrubFilth(filth: Filth, hands: HandPoint[], dt: number, now: nu
     const zone: BodyPart | null = hand.zone ?? (nearHead ? "hair" : null);
     if (!zone) continue;
     const strength = Math.max(hand.intensity, Math.min(1, Math.max(hand.speed, ownSpeed) / 0.5) * 0.7);
+    best = Math.max(best, strength);
     if (strength <= 0.02) continue;
     const parts: BodyPart[] = zone === "hair" || zone === "face" ? ["hair", "face"] : [zone];
     for (const part of parts) {
@@ -145,6 +149,7 @@ export function scrubFilth(filth: Filth, hands: HandPoint[], dt: number, now: nu
     }
   }
   for (const [key, seen] of filth.trail) if (now - seen.at > TRAIL_MAX_GAP_MS) filth.trail.delete(key);
+  filth.strength += (best - filth.strength) * Math.min(1, dt * 6);
 }
 
 export function filthAverage(filth: Filth) {
