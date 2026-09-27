@@ -17,15 +17,37 @@
   <div id="refill-guide" class="refill-guide"><div class="refill-direction"><span id="refill-arrow" aria-hidden="true">↑</span><b id="refill-distance">3 m</b></div><div><span id="refill-title">WATER BOTTLES</span><p id="refill-instruction">Walk over a blue bottle · +45 water</p></div></div>
   <div class="boss-stats"><div class="boss-heading"><div><span class="tiny">WARDEN OF THE WALK-IN</span><h2>THE UNWASHED</h2></div><div class="stink-number"><span id="stink-label">100.0</span><small>% STINK</small></div></div><div class="stink-track" id="stink-meter" role="progressbar" aria-label="Stink meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="stink-fill"></i><b title="Reduce stink to 10% to win"></b></div><div class="boss-footer"><span id="boss-action">HE HAS NEVER SEEN SOAP.</span><span>STINK METER · 10% TO WIN <b>◇</b></span></div></div>
   <div class="controls-strip"><span><kbd>W A S D</kbd> MOVE</span><span><kbd>SPACE</kbd> DODGE</span><span><kbd>LMB</kbd> SHOWER</span><span><kbd>RMB</kbd> JET</span><span><kbd>Q</kbd> LOCK ON</span><span><kbd>F / G</kbd> AUTO WATER</span></div>
+  <div id="name-tags" aria-hidden="true"></div>
   <div id="boss-line" class="boss-line" aria-live="polite"></div>
   <div id="toast" aria-live="polite"></div>
 </section>
 <main id="menu" class="screen">
-  <div class="menu-copy"><p class="eyebrow"><span></span> ABANDON ALL GRIME, YE WHO ENTER</p><div class="title-ornament" aria-hidden="true">✧</div><h1>SHOWER<br><em>SOULS</em></h1><p class="intro">Within this forsaken stall, a giant remains unwashed.<br>Take up the hose. See him cleansed.</p><button id="start" class="primary" disabled>PREPARING THE STALL <span aria-hidden="true">◇</span></button><button id="practice" class="quiet practice-button" disabled>PRACTICE CLEANING · PASSIVE BOSS</button><p id="loading">Loading characters and water pressure…</p><div class="menu-facts"><span><b>10%</b> STINK TO WIN</span><span><b>100</b> HP. MAKE IT COUNT.</span></div></div>
+  <div class="menu-copy"><p class="eyebrow"><span></span> ABANDON ALL GRIME, YE WHO ENTER</p><div class="title-ornament" aria-hidden="true">✧</div><h1>SHOWER<br><em>SOULS</em></h1><p class="intro">Within this forsaken stall, a giant remains unwashed.<br>Take up the hose. See him cleansed.</p><button id="start" class="primary" disabled>PREPARING THE STALL <span aria-hidden="true">◇</span></button><button id="practice" class="quiet practice-button" disabled>PRACTICE CLEANING · PASSIVE BOSS</button><button id="party-open" class="quiet practice-button party-button" disabled>PLAY WITH FRIENDS · UP TO 3</button><p id="loading">Loading characters and water pressure…</p><div class="menu-facts"><span><b>10%</b> STINK TO WIN</span><span><b>100</b> HP. MAKE IT COUNT.</span></div></div>
   <div class="field-guide"><span class="tiny">WORDS FOR THE WOULD-BE WASHER</span><div><b>I</b><p><strong>Wield the water.</strong> High-pressure shower for coverage. Focused jet for stubborn patches. Both use water.</p></div><div><b>II</b><p><strong>Heed the warning.</strong> Every slam has a tell. Dodge through the hit, then spray during his recovery.</p></div><div><b>III</b><p><strong>Guard your reserve.</strong> Walk over glowing blue bottles for +45 water. Watch your reserve, keep moving, and wash every side.</p></div><a href="/lab.html">OPEN THE ANIMATION LAB ↗</a></div>
   <div class="menu-bottom"><span>WASD MOVE · MOUSE AIM · SPACE ROLL · Q LOCK ON</span><span>HEADPHONES & A MOUSE RECOMMENDED</span></div>
 </main>
 <section id="pause" class="screen centered" hidden><div class="panel"><p class="eyebrow">A MOMENT OF REPRIEVE</p><h2>REST AWHILE</h2><p>WASD move · Mouse aim · Space dodge<br>Hold left mouse to shower · Right mouse for jet<br>Q toggles lock on · F / G toggle shower / jet · Esc pauses<br>Water is limited. Run over glowing blue bottles to refill.</p><label class="volume-control" for="audio-volume"><span>Master volume</span><input id="audio-volume" type="range" min="0" max="1" step="0.05" value="0.7" aria-label="Master volume"></label><button id="resume" class="primary">BACK TO THE STALL <span aria-hidden="true">◇</span></button><button id="restart-pause" class="secondary">RESTART FIGHT</button><button id="menu-pause" class="quiet">RETURN TO MENU</button></div></section>
+<section id="party" class="screen centered" hidden aria-label="Play with friends"><div class="panel party-panel">
+  <div id="party-entry">
+    <p class="eyebrow">A FELLOWSHIP OF THE UNWASHED</p><h2>SUMMON ALLIES</h2>
+    <label class="party-field"><span>Your name</span><input id="party-name" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Tarnished"></label>
+    <button id="party-create" class="primary">CREATE A ROOM <span aria-hidden="true">◇</span></button>
+    <div class="party-or"><span>OR JOIN A FRIEND</span></div>
+    <div class="party-join"><input id="party-join-code" maxlength="4" autocomplete="off" spellcheck="false" placeholder="CODE" aria-label="Room code"><button id="party-join" class="secondary">JOIN ROOM</button></div>
+    <button id="party-back" class="quiet">RETURN TO MENU</button>
+  </div>
+  <div id="party-room" hidden>
+    <p class="eyebrow">SHARE THIS CODE · UP TO 3 WASHERS</p><h2 id="party-code" class="party-code">····</h2>
+    <div class="party-invite"><input id="party-link" readonly aria-label="Invite link"><button id="party-copy" class="quiet">COPY LINK</button></div>
+    <ul id="party-players" class="party-players"></ul>
+    <p class="party-note">Co-op preview: you see each other move and spray. The boss stays passive until shared combat lands.</p>
+    <p id="party-countdown" class="party-countdown" hidden></p>
+    <button id="party-start" class="primary" hidden>START THE FIGHT <span aria-hidden="true">◇</span></button>
+    <p id="party-wait" class="party-wait"></p>
+    <button id="party-leave" class="quiet">LEAVE ROOM</button>
+  </div>
+  <p id="party-status" class="party-status" role="status"></p>
+</div></section>
 <section id="result" class="screen centered" hidden><div class="panel"><p id="result-kicker" class="eyebrow"></p><h2 id="result-title"></h2><p id="result-copy"></p><div class="result-stats"><div><b id="result-stink"></b><span>STINK REMAINING</span></div><div><b id="result-time"></b><span>TIME IN THE STALL</span></div></div><button id="retry" class="primary">ENTER THE STALL AGAIN <span aria-hidden="true">◇</span></button><button id="menu-result" class="quiet">RETURN TO MENU</button></div></section>
 <script type="module" src="/dist/game.js"></script>
 </body></html>

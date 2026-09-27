@@ -225,6 +225,36 @@ kbd { border: 1px solid #9d865142; border-radius: 0; padding: 3px 5px; font-size
   *, *::before, *::after { transition-duration: 0s !important; }
 }
 
+.party-button { padding-top: 6px; color: #c7b17e; }
+.party-panel { width: 520px; }
+.party-panel h2 { margin: 14px 0 22px; }
+.party-field { display: flex; flex-direction: column; gap: 8px; width: 350px; max-width: 100%; margin: 0 auto 18px; text-align: left; font-family: 'Cinzel', Georgia, serif; font-size: 9px; letter-spacing: 1.4px; color: #a8966f; }
+.party-panel input { font: inherit; font-family: 'Crimson Text', Georgia, serif; font-size: 18px; letter-spacing: .5px; color: #e6d6b2; background: #0d0a07cc; border: 1px solid #6d5a3a; border-radius: 0; padding: 10px 14px; outline: none; }
+.party-panel input:focus { border-color: #b3965c; }
+.party-panel input::placeholder { color: #6f624c; }
+.party-or { display: flex; align-items: center; gap: 12px; width: 350px; max-width: 100%; margin: 22px auto 12px; font-family: 'Cinzel', Georgia, serif; font-size: 9px; letter-spacing: 1.6px; color: #8f7d5d; }
+.party-or::before, .party-or::after { content: ''; flex: 1; height: 1px; background: #6d5a3a66; }
+.party-join { display: flex; gap: 10px; width: 350px; max-width: 100%; margin: 0 auto; }
+.party-join input { width: 120px; flex: none; text-align: center; font-family: 'Cinzel', Georgia, serif; letter-spacing: 6px; text-transform: uppercase; }
+.party-join .secondary { margin: 0; flex: 1; }
+.party-code { font-size: 64px !important; letter-spacing: 16px !important; margin: 6px 0 14px !important; padding-left: 16px; }
+.party-invite { display: flex; gap: 8px; width: 380px; max-width: 100%; margin: 0 auto 20px; }
+.party-invite input { flex: 1; min-width: 0; font-size: 14px; color: #a99b80; padding: 8px 10px; }
+.party-invite .quiet { flex: none; }
+.party-players { list-style: none; padding: 0; margin: 0 auto 16px; width: 350px; max-width: 100%; text-align: left; }
+.party-players li { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid #6d5a3a40; font-size: 18px; color: #dccba5; }
+.party-players li i { width: 8px; height: 8px; transform: rotate(45deg); flex: none; box-shadow: 0 0 8px currentColor; }
+.party-players li small { margin-left: auto; font-family: 'Cinzel', Georgia, serif; font-size: 9px; letter-spacing: 1.2px; color: #9d8a64; }
+.party-players li.empty { color: #6f624c; font-style: italic; font-size: 15px; }
+.panel p.party-note { font-size: 13px; line-height: 1.5; color: #8c7f68; margin: 0 auto 18px; max-width: 380px; font-style: italic; }
+.panel p.party-countdown { font-family: 'Cinzel', Georgia, serif; font-size: 18px; letter-spacing: 3px; color: #e0c68f; margin: 8px 0 14px; }
+.panel p.party-wait { font-size: 15px; color: #a3957c; margin: 10px 0 0; font-style: italic; }
+.panel p.party-status { min-height: 1.4em; margin: 12px 0 0; font-size: 15px; color: #d2956c; }
+#name-tags { position: absolute; inset: 0; overflow: hidden; }
+.name-tag { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: 'Cinzel', Georgia, serif; font-size: 11px; letter-spacing: 1.2px; color: var(--tag-color, #e2c47e); text-shadow: 0 1px 3px #000, 0 0 8px #000; white-space: nowrap; will-change: transform; }
+.name-tag i { display: block; width: 54px; height: 4px; background: #170807cc; border: 1px solid #8e744a99; }
+.name-tag b { display: block; height: 100%; width: 100%; background: #a83a2e; transition: width .18s; }
+.name-tag.down { opacity: .5; }
 .boss-line { position: absolute; bottom: 226px; left: 50%; transform: translateX(-50%); width: min(660px, 65vw); padding: 10px 30px; color: #e2cda5; font-size: 25px; font-style: italic; text-align: center; line-height: 1.4; text-shadow: 0 2px 5px #000, 0 0 14px #000; background: linear-gradient(90deg, transparent, #0d0804a6 20%, #0d0804a6 80%, transparent); opacity: 0; transition: opacity .25s; }
 .boss-line.speaking { opacity: 1; }
 @media (max-width: 780px) { .boss-line { bottom: 250px; width: 85vw; font-size: 21px; } }

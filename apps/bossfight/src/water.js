@@ -7,8 +7,8 @@ const UP = new T.Vector3(0, 1, 0), FORWARD = new T.Vector3(0, 0, 1);
 // A continuous, turbulent water column supplies the weight of the hose. Moving
 // droplets, short streaks and low-opacity mist supply breakup and speed.
 export class Water {
-  constructor(scene) {
-    this.capacity = 2400; this.cursor = 0; this.emission = 0; this.splashEmission = 0; this.time = 0;
+  constructor(scene, { capacity = 2400, emissionScale = 1 } = {}) {
+    this.scene = scene; this.capacity = capacity; this.emissionScale = emissionScale; this.cursor = 0; this.emission = 0; this.splashEmission = 0; this.time = 0;
     this.flowing = false; this.tail = 0; this.flowAge = 0; this.mode = 'shower';
     this.origin = new T.Vector3(); this.velocity = new T.Vector3(); this.endTime = 0;
     this.particles = Array.from({ length: this.capacity }, () => ({ life: 0, ttl: 1, size: .04, mist: false, p: new T.Vector3(), v: new T.Vector3() }));
@@ -65,6 +65,11 @@ export class Water {
     });
     this.foamCursor = 0; this.foamClock = 0;
     this.tempPoint = new T.Vector3(); this.tangent = new T.Vector3(); this.axisA = new T.Vector3(); this.axisB = new T.Vector3();
+  }
+  dispose() {
+    const objects = [this.mesh, this.streaks, this.column, this.core, ...this.foam.map((foam) => foam.mesh)];
+    for (const object of objects) { this.scene.remove(object); object.material.dispose(); }
+    for (const geometry of new Set(objects.map((object) => object.geometry))) geometry.dispose();
   }
   resize(height, pixelRatio) { this.pointMaterial.uniforms.uScale.value = height * pixelRatio * .92; }
   spawn(point, velocity, life, size, mist = false) {
@@ -133,7 +138,7 @@ export class Water {
     this.time += dt; this.flowAge += dt;
     if (!this.flowing) this.tail = Math.max(0, this.tail - dt);
     if (this.flowing) {
-      this.emission += dt * (this.mode === 'jet' ? 720 : 1100);
+      this.emission += dt * (this.mode === 'jet' ? 720 : 1100) * this.emissionScale;
       const speed = this.velocity.length(), spread = this.mode === 'jet' ? .016 : .12;
       while (this.emission >= 1) {
         this.emission--;

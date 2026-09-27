@@ -13,6 +13,8 @@ import { BOSS_WALK, walkContacts, walkCyclesForDistance } from './boss-walk.js';
 import { Footfalls, playFootfall, playStompImpact } from './footfalls.js';
 import { stompContact } from './stomp.js';
 import { makeArena } from './arena.js';
+import { createParty } from './party-ui.js';
+import { RemotePlayers } from './remote-players.js';
 
 const $=id=>document.getElementById(id), canvas=$('game');
 const MAX_PIXEL_RATIO=Math.min(devicePixelRatio,1.6);let pixelRatio=MAX_PIXEL_RATIO;
@@ -29,18 +31,22 @@ const forward=new T.Vector3(),right=new T.Vector3(),move=new T.Vector3(),aim=new
 let player,boss,surface,nozzle,phase='loading',time=0,last=performance.now(),yaw=Math.PI,pitch=.07,lockOn=false,lastState='ready',washClock=0,flash=0,toastUntil=0,hitUntil=0,mode='shower',loaded=false,autoWater=null,practice=false;
 let bossState='turn',bossTime=0,bossFacing=0,attack='giant_stomp',attackCount=0,attackStart=new T.Vector3(),lastAttack='',impactDone=new Set(),previousHitboxes=new Map();
 let cameraShake=0,audio=null,waterGain=null,audioMaster=null,soundtrack=null,muted=false,masterVolume=.7;
+let party=null,remotes=null,coop=false,stateClock=0;const lastPose={id:'ready',t:0},SPAWN_OFFSETS=[0,-2.4,2.4];
 const ring=new T.Mesh(new T.RingGeometry(1.5,1.52,80),new T.MeshBasicMaterial({color:0xd8eeb0,transparent:true,opacity:.4,side:T.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.04;scene.add(ring);
 const impactRing=new T.Mesh(new T.RingGeometry(.97,1,80),new T.MeshBasicMaterial({color:0xd9eee1,transparent:true,opacity:0,side:T.DoubleSide,depthWrite:false}));impactRing.rotation.x=-Math.PI/2;impactRing.position.y=.055;scene.add(impactRing);let impactLife=0;
 const loader=new GLTFLoader();
 const clamp=T.MathUtils.clamp,lerp=T.MathUtils.lerp,smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
 const angleDiff=(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b));
 const duration=id=>SPELLS[id]?.duration ?? CLIPS.boss.find(c=>c.id===id).duration;
+function instantiateCharacter(root,animations,height){
+  const group=new T.Group();group.add(root);scene.add(group);const bones={};let mesh;
+  root.traverse(o=>{if(o.isBone)bones[o.name.replace(/[^a-zA-Z0-9]/g,'').replace(/^mixamorig/,'')]=o;if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;mesh=o;}});
+  group.updateMatrixWorld(true);const contact=new T.Vector3().fromArray(stompContact(group.worldToLocal(bones.RightFoot.getWorldPosition(new T.Vector3())).toArray(),height));
+  const mixer=new T.AnimationMixer(root);return{gltf:{scene:root,animations},group,mixer,bones,mesh,scale:root.scale.x,stompContact:contact,actions:new Map(),active:null};
+}
 async function loadCharacter(file,height){
   const gltf=await loader.loadAsync(`/models/${file}-animated.glb`);const bounds=new T.Box3().setFromObject(gltf.scene),scale=height/(bounds.max.y-bounds.min.y);gltf.scene.scale.setScalar(scale);
-  const group=new T.Group();group.add(gltf.scene);scene.add(group);const bones={};let mesh;
-  gltf.scene.traverse(o=>{if(o.isBone)bones[o.name.replace(/[^a-zA-Z0-9]/g,'').replace(/^mixamorig/,'')]=o;if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false;mesh=o;}});
-  group.updateMatrixWorld(true);const contact=new T.Vector3().fromArray(stompContact(group.worldToLocal(bones.RightFoot.getWorldPosition(new T.Vector3())).toArray(),height));
-  const mixer=new T.AnimationMixer(gltf.scene);return{gltf,group,mixer,bones,mesh,scale,stompContact:contact,actions:new Map(),active:null};
+  return{...instantiateCharacter(gltf.scene,gltf.animations,height),gltf};
 }
 function pose(model,id,t,blendDt=0){
   let action=model.actions.get(id);
@@ -63,7 +69,16 @@ try{
   nozzle=new T.Group();const asset=nozzleGltf.scene;asset.scale.setScalar(.48);asset.rotation.y=-Math.PI/2;asset.position.set(0,-.24,.055);nozzle.add(asset);scene.add(nozzle);
   asset.traverse(o=>{if(o.isMesh){o.castShadow=true;o.material.normalScale?.set(.35,.35);}});
   player.group.position.copy(pos);boss.group.position.set(0,0,-1);pose(player,'ready',0);pose(boss,'idle',0);
-  loaded=true;phase='menu';$('start').disabled=false;$('practice').disabled=false;$('start').innerHTML='ENTER THE STALL <span>◇</span>';$('loading').textContent='Desktop · Mouse & keyboard · Esc to pause';
+  remotes=new RemotePlayers({scene,camera,source:player,instantiate:(root,animations)=>instantiateCharacter(root,animations,1.85),pose,tagLayer:$('name-tags')});
+  party=createParty({
+    inFight:()=>coop&&['fight','pause','result'].includes(phase),
+    onRoom:(room,selfId)=>remotes.setRoster(room.players,selfId),
+    onStart:({players,selfId})=>{remotes.setRoster(players,selfId);startCoop(Math.max(0,players.findIndex(p=>p.id===selfId)));},
+    onState:(id,state)=>remotes.push(id,state),
+    onGone:id=>remotes.gone(id),
+  });
+  loaded=true;phase='menu';$('start').disabled=false;$('practice').disabled=false;$('party-open').disabled=false;$('start').innerHTML='ENTER THE STALL <span>◇</span>';$('loading').textContent='Desktop · Mouse & keyboard · Esc to pause';
+  $('party-open').onclick=()=>party.open();if(party.wantsOpen)party.open();
 }catch(error){console.error(error);$('loading').textContent=`Unable to prepare the fight: ${error.message}. Refresh after running npm run boss:dev.`;}
 
 function initAudio() {
@@ -96,8 +111,16 @@ function reset(){
   yaw=Math.PI;pitch=.06;lockOn=false;bossFacing=0;bossTime=0;bossState='turn';attackCount=0;lastAttack='';previousHitboxes.clear();impactDone.clear();keys.clear();buttons.clear();autoWater=null;surface.reset();spells.clear();water.reset();reserve.reset();bottles.reset();pickups.reset();streamTrace=null;streamMode=null;lowWaterNotified=false;emptyWaterNotified=false;refillFlash=0;washClock=0;flash=0;impactLife=0;lastState='ready';cameraShake=0;hitUntil=0;
   pose(player,'ready',0);pose(boss,'idle',0);surface.updateCollision();phase='fight';soundtrack?.reset();soundtrack?.setPlaying(true);screens();showToast('REDUCE STINK TO 10%. SURVIVE THE REST.',2.8);updateCamera(1,true);updateHUD();
 }
-function start(practiceMode=false){practice=practiceMode;initAudio();reset();if(practice)showToast('PRACTICE · PASSIVE BOSS',3);captureMouse();}
-function pause(){if(phase!=='fight')return;phase='pause';soundtrack?.setPlaying(false);keys.clear();buttons.clear();water.stop();if(waterGain)waterGain.gain.value=0;document.exitPointerLock();screens();}
+function start(practiceMode=false,coopMode=false){practice=practiceMode;coop=coopMode;remotes?.setVisible(coop);initAudio();reset();if(practice)showToast('PRACTICE · PASSIVE BOSS',3);if(coop)showToast('CO-OP PREVIEW · WASH HIM TOGETHER',3);captureMouse();}
+function startCoop(slot){start(false,true);pos.x+=SPAWN_OFFSETS[slot]??0;player.group.position.copy(pos);stateClock=0;updateCamera(1,true);}
+function leaveCoop(){coop=false;remotes.setVisible(false);menu();party.back();}
+function localState(){
+  const flowing=water.flowing&&streamTrace;
+  return{p:[pos.x,pos.y,pos.z],r:Math.atan2(Math.sin(player.group.rotation.y),Math.cos(player.group.rotation.y)),c:lastPose.id,t:clamp(lastPose.t,0,60),h:fight.health,f:fight.state,
+    w:flowing?{m:mode,o:emitter.toArray(),v:streamVelocity.toArray(),e:clamp(streamTrace.time,0,5)}:null};
+}
+function pause(){if(phase!=='fight')return;phase='pause';soundtrack?.setPlaying(false);keys.clear();buttons.clear();water.stop();if(waterGain)waterGain.gain.value=0;document.exitPointerLock();
+  $('restart-pause').hidden=coop;$('menu-pause').textContent=coop?'LEAVE THE FIGHT · BACK TO ROOM':'RETURN TO MENU';screens();}
 function resume(){phase='fight';soundtrack?.setPlaying(true);screens();captureMouse();initAudio();}
 function menu(){spells.clear();footfalls.reset();phase='menu';soundtrack?.setPlaying(false);fight.reset();keys.clear();buttons.clear();water.reset();reserve.reset();bottles.reset();pickups.reset();surface.reset();pos.set(-3,0,6);player.group.position.copy(pos);boss.group.position.set(0,0,-1);boss.group.rotation.y=.2;document.exitPointerLock();screens();}
 function finish(won){
@@ -105,9 +128,10 @@ function finish(won){
   $('result-kicker').textContent=practice?'PRACTICE COMPLETE.':won?'A MIRACLE OF BASIC HYGIENE.':'THE STALL CLAIMS ANOTHER.';
   $('result-title').textContent=won?'FILTH VANQUISHED':'YOU DIED';$('result-copy').textContent=won?'The Unwashed is finally presentable. He is furious about it.':'Read the windup. Roll through the strike. Wash during recovery.';
   $('result-stink').textContent=`${(surface.clean.stink*100).toFixed(1)}%`;$('result-time').textContent=`${Math.floor(time/60)}:${String(Math.floor(time%60)).padStart(2,'0')}`;
+  $('retry').innerHTML=coop?'BACK TO THE ROOM <span aria-hidden="true">◇</span>':'ENTER THE STALL AGAIN <span aria-hidden="true">◇</span>';$('menu-result').hidden=coop;
   if(won)pose(boss,'clean_victory',0);thump(won?.5:1);
 }
-$('start').onclick=()=>start(false);$('practice').onclick=()=>start(true);$('retry').onclick=()=>start(practice);$('pause-button').onclick=pause;$('resume').onclick=resume;$('restart-pause').onclick=()=>start(practice);$('menu-pause').onclick=menu;$('menu-result').onclick=menu;
+$('start').onclick=()=>start(false);$('practice').onclick=()=>start(true);$('retry').onclick=()=>coop?leaveCoop():start(practice);$('pause-button').onclick=pause;$('resume').onclick=resume;$('restart-pause').onclick=()=>start(practice);$('menu-pause').onclick=()=>coop?leaveCoop():menu();$('menu-result').onclick=menu;
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('mousedown',e=>{if(phase!=='fight')return;if(document.pointerLockElement!==canvas)captureMouse();if(e.button===0||e.button===2){buttons.add(e.button);e.preventDefault();}});
 document.addEventListener('mouseup',e=>buttons.delete(e.button));
@@ -141,7 +165,7 @@ function updatePlayer(dt){
     player.group.rotation.y+=angleDiff(yaw,player.group.rotation.y)*Math.min(1,dt*16);
     id=keys.has('KeyW')?'jog_forward':keys.has('KeyS')?'jog_backward':keys.has('KeyA')?'jog_left':keys.has('KeyD')?'jog_right':(buttons.size||autoWater)&&!reserve.empty?'spray':'ready';t%=CLIPS.player.find(c=>c.id===id).duration;
   }
-  pose(player,id,t);
+  pose(player,id,t);lastPose.id=id;lastPose.t=t;
 }
 function selectAttack(distance){
   // Spell-heavy rotation; old kicks, swats, fist slams and melee charge are retired.
@@ -154,7 +178,7 @@ function selectAttack(distance){
 }
 function updateBoss(dt){
   const bossPose=(id,t)=>pose(boss,id,t,dt);
-  if(practice){bossPose('idle',time%2.4);return;}
+  if(practice||coop){bossPose('idle',time%2.4);return;}
   bossTime+=dt;const target=Math.atan2(pos.x-boss.group.position.x,pos.z-boss.group.position.z),difference=angleDiff(target,bossFacing),distance=pos.distanceTo(boss.group.position);
   if(bossState==='turn'){
     bossFacing+=clamp(difference,-2.8*dt,2.8*dt);boss.group.rotation.y=bossFacing;bossPose(Math.abs(difference)>.05?(difference>0?'turn_left':'turn_right'):'idle',time%.9);
@@ -298,10 +322,10 @@ function updateHUD(){
   updateWaterHUD();
   const stink=surface.clean.stink*100;$('health-label').textContent=`${fight.health} / 100`;$('health-fill').style.width=`${fight.health}%`;$('health-fill').classList.toggle('critical',fight.health<=35);$('stink-label').textContent=stink.toFixed(1);$('stink-fill').style.width=`${stink}%`;$('stink-meter').setAttribute('aria-valuenow',stink.toFixed(1));
   $('player-state').textContent=fight.state==='rolling'?(fight.invulnerable?'DODGE · INVULNERABLE':'ROLL RECOVERY'):['knockedDown','gettingUp'].includes(fight.state)?'GETTING UP · PROTECTED':lockOn?'LOCKED ON · Q TO FREE AIM':'FREE AIM · Q TO LOCK ON';
-  $('boss-action').textContent=practice?'PRACTICE · THE BOSS IS PASSIVE':bossState==='attack'?`${(SPELLS[attack]?.name ?? CLIPS.boss.find(c=>c.id===attack).name).toUpperCase()} · ${bossTime<(SPELLS[attack]?.strikeStart ?? ATTACKS[attack].windows[0].start)?'WINDUP':bossTime>(SPELLS[attack]?.strikeEnd ?? ATTACKS[attack].windows.at(-1).end)?'RECOVERY':'STRIKE'}`:bossState==='recover'?'RECOVERING · KEEP WASHING':bossState==='approach'?'HE IS COMING FOR YOU.':'WATCH HIS HANDS.';
+  $('boss-action').textContent=coop?'CO-OP PREVIEW · THE BOSS IS PASSIVE':practice?'PRACTICE · THE BOSS IS PASSIVE':bossState==='attack'?`${(SPELLS[attack]?.name ?? CLIPS.boss.find(c=>c.id===attack).name).toUpperCase()} · ${bossTime<(SPELLS[attack]?.strikeStart ?? ATTACKS[attack].windows[0].start)?'WINDUP':bossTime>(SPELLS[attack]?.strikeEnd ?? ATTACKS[attack].windows.at(-1).end)?'RECOVERY':'STRIKE'}`:bossState==='recover'?'RECOVERING · KEEP WASHING':bossState==='approach'?'HE IS COMING FOR YOU.':'WATCH HIS HANDS.';
   $('mode-label').textContent=mode==='jet'?'PRESSURE JET':'SHOWER CONE';$('mode-description').textContent=mode==='jet'?'RMB · FOCUSED CLEANING':'LMB · WIDE COVERAGE';$('hit-marker').style.opacity=time<hitUntil?1:0;$('toast').style.opacity=time<toastUntil?1:0;
 }
-function resize(){renderer.setPixelRatio(pixelRatio);renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();water.resize(innerHeight,renderer.getPixelRatio());}window.addEventListener('resize',resize);resize();
+function resize(){renderer.setPixelRatio(pixelRatio);renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();water.resize(innerHeight,renderer.getPixelRatio());remotes?.resize(innerHeight,renderer.getPixelRatio());}window.addEventListener('resize',resize);resize();
 // Slow GPUs drop render resolution in steps; it never climbs back, so it cannot oscillate.
 const RESOLUTION={window:90,slowMs:22,step:.2,min:Math.min(MAX_PIXEL_RATIO,.75)},frameIntervals=[];
 function adaptResolution(interval){
@@ -314,7 +338,8 @@ function frame(now){
   requestAnimationFrame(frame);const interval=now-last,dt=Math.min(interval/1000,.04);last=now;
   if(loaded){
     if(phase==='fight'){
-      adaptResolution(interval);time+=dt;footfalls.update(dt);updatePlayer(dt);updateBoss(dt);updateCamera(dt);updateNozzle();updateSupplies(dt);spray(dt);water.update(dt);soundtrack?.tick(time,water.flowing,practice);updateHUD();
+      adaptResolution(interval);time+=dt;footfalls.update(dt);updatePlayer(dt);updateBoss(dt);updateCamera(dt);updateNozzle();updateSupplies(dt);spray(dt);water.update(dt);soundtrack?.tick(time,water.flowing,practice||coop);updateHUD();
+      if(coop&&(stateClock+=dt)>=.05){stateClock=0;party.sendState(localState());}
       if(fight.state==='dead')finish(false);else if(fight.health>0&&surface.clean.won)finish(true);
     }else if(phase==='menu'){
       pickups.update(time,false,false);
@@ -322,6 +347,7 @@ function frame(now){
     }else if(phase==='result'){
       if(surface.clean.won)pose(boss,'clean_victory',Math.min(3.6,(now-resultAt)/1000));water.update(dt);if(waterGain)waterGain.gain.value=0;
     }
+    if(coop)remotes.update(dt,now);
     flash=Math.max(0,flash-dt*2);$('damage-flash').style.opacity=flash*.8;cameraShake=Math.max(0,cameraShake-dt*1.5);impactLife=Math.max(0,impactLife-dt);impactRing.material.opacity=impactLife*.5;impactRing.scale.setScalar(1+(.55-impactLife)*7);
   }
   arena.update(now/1000);renderer.render(scene,camera);
