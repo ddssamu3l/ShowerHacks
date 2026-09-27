@@ -9,6 +9,7 @@ import { BottlePickups } from './bottle-pickups.js';
 import { BossSpells, SPELLS } from './boss-spells.js';
 import { spellTouches, DIVE, diveDestination } from './spell-rules.js';
 import { BossAudio } from './boss-audio.js';
+import { PlayerVoice } from './player-voice.js';
 import { BOSS_WALK, walkContacts, walkCyclesForDistance } from './boss-walk.js';
 import { Footfalls, playFootfall, playStompImpact } from './footfalls.js';
 import { stompContact } from './stomp.js';
@@ -32,7 +33,7 @@ const pos=new T.Vector3(-3,0,6),rollOrigin=new T.Vector3(),knockOrigin=new T.Vec
 const forward=new T.Vector3(),right=new T.Vector3(),move=new T.Vector3(),aim=new T.Vector3(),emitter=new T.Vector3();
 let player,boss,surface,nozzle,phase='loading',time=0,last=performance.now(),yaw=Math.PI,pitch=.07,lockOn=false,lastState='ready',washClock=0,flash=0,toastUntil=0,hitUntil=0,mode='shower',loaded=false,autoWater=null,practice=false;
 let bossState='turn',bossTime=0,bossFacing=0,attack='giant_stomp',attackCount=0,attackStart=new T.Vector3(),lastAttack='',impactDone=new Set(),previousHitboxes=new Map();
-let cameraShake=0,audio=null,waterGain=null,audioMaster=null,soundtrack=null,muted=false,masterVolume=.7;
+let cameraShake=0,audio=null,waterGain=null,audioMaster=null,soundtrack=null,playerVoice=null,muted=false,masterVolume=.7;
 let party=null,remotes=null,coop=false,stateClock=0,coopStink=1,coopSeconds=0,coopShares=null,spectating=false,pendingBottle=null,stroke=null;const coopBoss=new CoopBoss();const lastPose={id:'ready',t:0},SPAWN_OFFSETS=[0,-2.4,2.4];
 const ring=new T.Mesh(new T.RingGeometry(1.5,1.52,80),new T.MeshBasicMaterial({color:0xd8eeb0,transparent:true,opacity:.4,side:T.DoubleSide,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=.04;scene.add(ring);
 const impactRing=new T.Mesh(new T.RingGeometry(.97,1,80),new T.MeshBasicMaterial({color:0xd9eee1,transparent:true,opacity:0,side:T.DoubleSide,depthWrite:false}));impactRing.rotation.x=-Math.PI/2;impactRing.position.y=.055;scene.add(impactRing);let impactLife=0;
@@ -99,6 +100,7 @@ function initAudio() {
     soundtrack = new BossAudio(audio, audioMaster, text => {
       $('boss-line').textContent = text; $('boss-line').classList.toggle('speaking', !!text);
     });
+    playerVoice = new PlayerVoice(audio, audioMaster, { busy: () => !!soundtrack.voice, onSpeaking: speaking => soundtrack.setPlayerSpeaking(speaking) });
   }
   audio.resume(); soundtrack.setPlaying(phase === 'fight');
 }
@@ -116,7 +118,7 @@ function screens(){for(const id of ['menu','pause','result'])$(id).hidden=phase!
 function reset(){
   time=0;brain.reset();footfalls.reset();fight.reset();pos.set(0,0,7);player.group.position.copy(pos);player.group.rotation.y=Math.PI;boss.group.position.set(0,0,-1);boss.group.rotation.y=0;
   yaw=Math.PI;pitch=.06;lockOn=false;bossFacing=0;bossTime=0;bossState='turn';attackCount=0;lastAttack='';previousHitboxes.clear();impactDone.clear();keys.clear();buttons.clear();autoWater=null;surface.reset();spells.clear();water.reset();reserve.reset();bottles.reset();pickups.reset();streamTrace=null;streamMode=null;lowWaterNotified=false;emptyWaterNotified=false;refillFlash=0;washClock=0;flash=0;impactLife=0;lastState='ready';cameraShake=0;hitUntil=0;
-  pose(player,'ready',0);pose(boss,'idle',0);surface.updateCollision();phase='fight';soundtrack?.reset();soundtrack?.setPlaying(true);screens();showToast('REDUCE STINK TO 10%. SURVIVE THE REST.',2.8);updateCamera(1,true);updateHUD();
+  pose(player,'ready',0);pose(boss,'idle',0);surface.updateCollision();phase='fight';soundtrack?.reset();soundtrack?.setPlaying(true);playerVoice?.reset(time);screens();showToast('REDUCE STINK TO 10%. SURVIVE THE REST.',2.8);updateCamera(1,true);updateHUD();
 }
 function start(practiceMode=false,coopMode=false){practice=practiceMode;coop=coopMode;remotes?.setVisible(coop);initAudio();reset();if(practice)showToast('PRACTICE · PASSIVE BOSS',3);captureMouse();}
 function startCoop(slot,count){coopBoss.reset();coopStink=1;coopSeconds=0;coopShares=null;spectating=false;pendingBottle=null;stroke=null;start(false,true);
@@ -142,12 +144,12 @@ function localState(){
   return{p:[pos.x,pos.y,pos.z],r:Math.atan2(Math.sin(player.group.rotation.y),Math.cos(player.group.rotation.y)),c:lastPose.id,t:clamp(lastPose.t,0,60),h:fight.health,f:fight.state,
     w:flowing?{m:mode,o:emitter.toArray(),v:streamVelocity.toArray(),e:clamp(streamTrace.time,0,5)}:null};
 }
-function pause(){if(phase!=='fight')return;phase='pause';soundtrack?.setPlaying(false);keys.clear();buttons.clear();water.stop();if(waterGain)waterGain.gain.value=0;document.exitPointerLock();
+function pause(){if(phase!=='fight')return;phase='pause';soundtrack?.setPlaying(false);playerVoice?.stop();keys.clear();buttons.clear();water.stop();if(waterGain)waterGain.gain.value=0;document.exitPointerLock();
   $('restart-pause').hidden=coop;$('menu-pause').textContent=coop?'LEAVE THE FIGHT · BACK TO ROOM':'RETURN TO MENU';screens();}
 function resume(){phase='fight';soundtrack?.setPlaying(true);screens();captureMouse();initAudio();}
-function menu(){spells.clear();footfalls.reset();phase='menu';soundtrack?.setPlaying(false);fight.reset();keys.clear();buttons.clear();water.reset();reserve.reset();bottles.reset();pickups.reset();surface.reset();pos.set(-3,0,6);player.group.position.copy(pos);boss.group.position.set(0,0,-1);boss.group.rotation.y=.2;document.exitPointerLock();screens();}
+function menu(){spells.clear();footfalls.reset();phase='menu';soundtrack?.setPlaying(false);playerVoice?.stop();fight.reset();keys.clear();buttons.clear();water.reset();reserve.reset();bottles.reset();pickups.reset();surface.reset();pos.set(-3,0,6);player.group.position.copy(pos);boss.group.position.set(0,0,-1);boss.group.rotation.y=.2;document.exitPointerLock();screens();}
 function finish(won){
-  spells.clear();phase='result';soundtrack?.setPlaying(false);resultAt=performance.now();buttons.clear();keys.clear();water.stop();document.exitPointerLock();screens();$('result').classList.toggle('loss',!won);
+  spells.clear();phase='result';soundtrack?.setPlaying(false);playerVoice?.stop();resultAt=performance.now();buttons.clear();keys.clear();water.stop();document.exitPointerLock();screens();$('result').classList.toggle('loss',!won);
   $('result-kicker').textContent=practice?'PRACTICE COMPLETE.':won?'A MIRACLE OF BASIC HYGIENE.':'THE STALL CLAIMS ANOTHER.';
   $('result-title').textContent=won?'FILTH VANQUISHED':'YOU DIED';$('result-copy').textContent=won?'The Unwashed is finally presentable. He is furious about it.':'Read the windup. Roll through the strike. Wash during recovery.';
   const stinkLeft=coop?coopStink:surface.clean.stink,elapsed=coop?coopSeconds:time;
@@ -317,6 +319,7 @@ function spray(dt) {
     streamVelocity.normalize().multiplyScalar(settings.speed);
     streamTrace = traceWater(surface, emitter, streamVelocity, settings.range / settings.speed);
   }
+  if (!water.flowing) playerVoice?.attack(time);
   water.setStream(emitter, streamVelocity, mode, streamTrace.time);
   if (streamTrace.hit) {
     const distance = emitter.distanceTo(streamTrace.hit.point), radius = (mode === 'jet' ? .55 : Math.min(1.3, .6 + distance * .065)) / boss.scale;

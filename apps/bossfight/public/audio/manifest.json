@@ -19,5 +19,14 @@
       "pitch": "You call that a pitch?",
       "intro": "This shower has no product market fit."
     }
+  },
+  "playerVoice": {
+    "source": "User-supplied phone video of the player character; lines cut at natural pauses, DeepFilterNet speech enhancement (30 dB limit), EQ, light compression, -15 LUFS. See scripts/make-player-voice.py.",
+    "lines": {
+      "player-trash": "Man, this code is some trash.",
+      "player-apologise": "Apologise to the codebase.",
+      "player-china": "Man, no one in China has that shit."
+    },
+    "playback": "Only when the player opens the hose; 60% chance after a 25-40 s cooldown; every line once before any repeats."
   }
 }

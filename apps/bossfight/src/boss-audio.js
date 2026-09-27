@@ -8,7 +8,7 @@ export const BOSS_MUSIC = 'godfrey';
 export class BossAudio {
   constructor(context, output, onLine) {
     this.context = context; this.output = output; this.onLine = onLine;
-    this.buffers = new Map(); this.playing = false; this.voice = null; this.nextTaunt = 8; this.lastLine = null; this.serial = 0;
+    this.buffers = new Map(); this.playing = false; this.voice = null; this.nextTaunt = 8; this.lastLine = null; this.serial = 0; this.playerSpeaking = false;
     this.musicGain = context.createGain(); this.musicGain.gain.value = 0; this.musicGain.connect(output);
     this.voiceGain = context.createGain(); this.voiceGain.gain.value = .88; this.voiceGain.connect(output);
     this.ready = this.load();
@@ -26,8 +26,14 @@ export class BossAudio {
   }
   setPlaying(playing) {
     this.playing = playing;
-    this.musicGain.gain.setTargetAtTime(playing ? this.voice ? .12 : .38 : 0, this.context.currentTime, .2);
+    this.musicGain.gain.setTargetAtTime(playing ? this.voice ? .12 : this.idleLevel() : 0, this.context.currentTime, .2);
     if (!playing) this.stopVoice();
+  }
+  idleLevel() { return this.playerSpeaking ? .18 : .38; }
+  // Ducks the music under the player's own lines; the boss waits before taunting.
+  setPlayerSpeaking(speaking) {
+    this.playerSpeaking = speaking;
+    if (this.playing && !this.voice) this.musicGain.gain.setTargetAtTime(this.idleLevel(), this.context.currentTime, speaking ? .06 : .3);
   }
   reset() { this.stopVoice(); this.nextTaunt = 8; this.lastLine = null; }
   stopVoice() {
@@ -43,12 +49,12 @@ export class BossAudio {
     this.onLine(BOSS_LINES[id]); this.musicGain.gain.setTargetAtTime(.11, this.context.currentTime, .07);
     voice.onended = () => {
       if (token !== this.serial) return;
-      this.voice = null; voice.disconnect(); this.onLine(''); this.musicGain.gain.setTargetAtTime(this.playing ? .38 : 0, this.context.currentTime, .35);
+      this.voice = null; voice.disconnect(); this.onLine(''); this.musicGain.gain.setTargetAtTime(this.playing ? this.idleLevel() : 0, this.context.currentTime, .35);
     };
     voice.start(); return true;
   }
   tick(now, washing, passive) {
-    if (!this.playing || passive || this.voice || now < this.nextTaunt) return;
+    if (!this.playing || passive || this.voice || this.playerSpeaking || now < this.nextTaunt) return;
     let choices = washing ? ['shower', 'pitch'] : ['runway', 'pitch', 'intro']; choices = choices.filter(id => id !== this.lastLine);
     this.say(choices[Math.floor(Math.random() * choices.length)], now);
   }
