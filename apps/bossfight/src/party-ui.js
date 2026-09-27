@@ -4,7 +4,7 @@ const SEAT_KEY = 'shower-souls-seat', NAME_KEY = 'shower-souls-name';
 
 export function createParty(hooks) {
   const $ = (id) => document.getElementById(id);
-  let ws = null, opening = null, you = null, room = null, reconnectTimer = null, attempts = 0, countdownTimer = null;
+  let ws = null, opening = null, you = null, room = null, reconnectTimer = null, attempts = 0, countdownTimer = null, counting = false;
   const readSeat = () => { try { return JSON.parse(sessionStorage.getItem(SEAT_KEY)); } catch { return null; } };
   const saveSeat = () => { if (you && room) sessionStorage.setItem(SEAT_KEY, JSON.stringify({ token: you.token, code: room.code })); };
   const clearSeat = () => sessionStorage.removeItem(SEAT_KEY);
@@ -44,10 +44,15 @@ export function createParty(hooks) {
     else if (msg.type === 'room') {
       room = msg.room; saveSeat(); render();
       const self = me();
-      if (room.phase === 'fight' && self?.inFight && !hooks.inFight()) send({ type: 'back' });
+      if (room.phase === 'fight' && self?.inFight && !counting && !hooks.inFight()) send({ type: 'back' });
       hooks.onRoom(room, you.id);
     } else if (msg.type === 'start') startCountdown(msg);
     else if (msg.type === 'state') hooks.onState(msg.id, msg.s);
+    else if (msg.type === 'boss') hooks.onBoss(msg.s);
+    else if (msg.type === 'attack') hooks.onAttack(msg);
+    else if (msg.type === 'clean') hooks.onClean(msg);
+    else if (msg.type === 'bottle') hooks.onBottle(msg);
+    else if (msg.type === 'end') hooks.onEnd(msg);
     else if (msg.type === 'gone') hooks.onGone(msg.id);
     else if (msg.type === 'error') {
       status(msg.message);
@@ -55,14 +60,14 @@ export function createParty(hooks) {
     }
   }
   function startCountdown(msg) {
-    clearInterval(countdownTimer);
+    clearInterval(countdownTimer); counting = true;
     let left = 3; $('party-countdown').textContent = `THE FIGHT BEGINS IN ${left}`; $('party-countdown').hidden = false; $('party-start').hidden = true; $('party-wait').hidden = true;
     countdownTimer = setInterval(() => {
       left--;
       if (left > 0) { $('party-countdown').textContent = `THE FIGHT BEGINS IN ${left}`; return; }
-      clearInterval(countdownTimer); $('party-countdown').hidden = true;
+      clearInterval(countdownTimer); counting = false; $('party-countdown').hidden = true;
       $('party').hidden = true;
-      hooks.onStart({ players: msg.players, count: msg.count, selfId: you.id });
+      hooks.onStart({ players: msg.players, count: msg.count, groups: msg.groups, selfId: you.id });
     }, 1000);
   }
 
@@ -105,7 +110,7 @@ export function createParty(hooks) {
   function open() { $('party').hidden = false; status(''); render(); }
   function hide() { $('party').hidden = true; }
   function leave() {
-    send({ type: 'leave' }); clearTimeout(reconnectTimer); clearInterval(countdownTimer);
+    send({ type: 'leave' }); clearTimeout(reconnectTimer); clearInterval(countdownTimer); counting = false;
     you = null; room = null; clearSeat(); ws?.close(); ws = null; $('party-countdown').hidden = true; render();
   }
 
@@ -121,6 +126,7 @@ export function createParty(hooks) {
     get room() { return room; },
     wantsOpen: !!(invite || seat?.token),
     sendState(state) { send({ type: 'state', s: state }); },
+    send,
     back() { send({ type: 'back' }); open(); },
   };
 }

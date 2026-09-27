@@ -1,9 +1,12 @@
 import { WebSocketServer } from 'ws';
 import { PartyServer, PARTY } from './party.mjs';
+import { loadBossSurface } from './surface.mjs';
 
-// Mounts co-op rooms on /ws of an existing HTTP server.
-export function attachParty(server, { allowedOrigin } = {}) {
-  const party = new PartyServer(), wss = new WebSocketServer({ noServer: true, maxPayload: PARTY.maxMessageBytes });
+const TICK_MS = 33;
+
+// Mounts co-op rooms on /ws of an existing HTTP server and runs every fight at ~30 Hz.
+export async function attachParty(server, { allowedOrigin } = {}) {
+  const party = new PartyServer({ surface: await loadBossSurface() }), wss = new WebSocketServer({ noServer: true, maxPayload: PARTY.maxMessageBytes });
   server.on('upgrade', (req, socket, head) => {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname !== '/ws' || (allowedOrigin && req.headers.origin && !allowedOrigin(req.headers.origin, req.headers.host))) { socket.destroy(); return; }
@@ -20,7 +23,8 @@ export function attachParty(server, { allowedOrigin } = {}) {
   const heartbeat = setInterval(() => {
     for (const ws of wss.clients) { if (!ws.alive) { ws.terminate(); continue; } ws.alive = false; ws.ping(); }
   }, 15000);
-  server.on('close', () => clearInterval(heartbeat));
+  const ticker = setInterval(() => { try { party.tick(Date.now()); } catch (error) { console.error('Co-op tick failed', error); } }, TICK_MS);
+  server.on('close', () => { clearInterval(heartbeat); clearInterval(ticker); });
   return party;
 }
 

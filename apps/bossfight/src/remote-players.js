@@ -52,6 +52,11 @@ export class RemotePlayers {
     peer.model.group.traverse((o) => { if (o.isMesh) o.material.dispose(); });
     this.peers.delete(id);
   }
+  positionOf(id) { const peer = this.peers.get(id); return peer?.model.group.visible ? peer.model.group.position : null; }
+  alivePosition() {
+    for (const peer of this.peers.values()) if (peer.model.group.visible && (peer.buffer.at(-1)?.s.h ?? 0) > 0) return peer.model.group.position;
+    return null;
+  }
   clear() { for (const id of [...this.peers.keys()]) this.remove(id); }
   setVisible(visible) {
     this.visible = visible;

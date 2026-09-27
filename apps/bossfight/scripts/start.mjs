@@ -10,6 +10,6 @@ catch { console.error('Missing dist/game.js. Run `npm run build` first.'); proce
 
 const port = Number(process.env.PORT) || 4173, host = process.env.HOST || '0.0.0.0';
 const server = createServer(createStaticHandler(root, { production: true }));
-attachParty(server, { allowedOrigin: sameHost });
+await attachParty(server, { allowedOrigin: sameHost });
 server.listen(port, host, () => console.log(`Shower Souls listening on http://${host}:${port}`));
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.close(() => process.exit(0)));

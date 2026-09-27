@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { Fight, seededRandom } from './fight.mjs';
 
 export const PARTY = Object.freeze({
   maxPlayers: 3, reconnectMs: 20000, maxRooms: 500, maxNameLength: 16, maxMessageBytes: 4096,
-  statesPerSecond: 40, colors: ['#e2c47e', '#7fc4e2', '#e28a7f'],
+  statesPerSecond: 40, paintsPerSecond: 30, colors: ['#e2c47e', '#7fc4e2', '#e28a7f'],
 });
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const CLIP = /^[a-z_]{1,24}$/, FIGHT_STATE = /^[a-zA-Z]{1,16}$/;
@@ -29,11 +30,11 @@ export function cleanState(s) {
 // Room and lobby state for co-op fights. Transport-agnostic: the WebSocket layer
 // calls connect/message/disconnect and supplies a send(object) function per client.
 export class PartyServer {
-  constructor({ now = () => Date.now(), random = Math.random, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
-    Object.assign(this, { now, random, setTimer, clearTimer });
+  constructor({ now = () => Date.now(), random = Math.random, setTimer = setTimeout, clearTimer = clearTimeout, surface = null } = {}) {
+    Object.assign(this, { now, random, setTimer, clearTimer, surface });
     this.rooms = new Map(); this.tokens = new Map();
   }
-  connect(send) { return { send, player: null, room: null, budget: PARTY.statesPerSecond, budgetAt: this.now() }; }
+  connect(send) { const now = this.now(); return { send, player: null, room: null, budget: PARTY.statesPerSecond, budgetAt: now, paintBudget: PARTY.paintsPerSecond, paintAt: now }; }
 
   message(client, raw) {
     if (typeof raw !== 'string' || raw.length > PARTY.maxMessageBytes) return this.error(client, 'too_large', 'Message too large.');
@@ -45,6 +46,8 @@ export class PartyServer {
       case 'resume': return this.resume(client, msg);
       case 'start': return this.start(client);
       case 'state': return this.state(client, msg);
+      case 'paint': return this.paint(client, msg);
+      case 'pickup': return this.pickup(client, msg);
       case 'back': return this.back(client);
       case 'leave': return this.leave(client);
       default: return this.error(client, 'bad_message', 'Unknown message.');
@@ -57,7 +60,7 @@ export class PartyServer {
     if (!name) return this.error(client, 'bad_name', 'Enter a name.');
     if (this.rooms.size >= PARTY.maxRooms) return this.error(client, 'server_full', 'Too many rooms right now. Try again soon.');
     let code; do code = Array.from({ length: 4 }, () => CODE_LETTERS[Math.floor(this.random() * CODE_LETTERS.length)]).join(''); while (this.rooms.has(code));
-    const room = { code, hostId: null, phase: 'lobby', fight: 0, players: new Map() };
+    const room = { code, hostId: null, phase: 'lobby', fight: 0, sim: null, players: new Map() };
     this.rooms.set(code, room);
     this.addPlayer(client, room, name);
   }
@@ -87,6 +90,7 @@ export class PartyServer {
     if (player.client) player.client.player = player.client.room = null;
     if (player.dropTimer) this.clearTimer(player.dropTimer);
     player.dropTimer = null; player.client = client; client.player = player; client.room = room;
+    if (player.inFight) room.sim?.rejoin(player.id);
     client.send({ type: 'joined', you: { id: player.id, token: player.token }, resumed: true });
     this.broadcastRoom(room);
   }
@@ -98,7 +102,8 @@ export class PartyServer {
     room.phase = 'fight'; room.fight++;
     const connected = [...room.players.values()].filter((p) => p.client);
     for (const p of connected) p.inFight = true;
-    this.broadcast(room, { type: 'start', fight: room.fight, count: connected.length, players: connected.map((p) => this.publicPlayer(p, room)) });
+    room.sim = this.surface ? new Fight({ players: connected, surface: this.surface, now: this.now(), random: seededRandom(Math.floor(this.random() * 2 ** 32)), send: (msg) => this.broadcast(room, msg) }) : null;
+    this.broadcast(room, { type: 'start', fight: room.fight, count: connected.length, groups: room.sim?.clean.groups.length ?? 0, players: connected.map((p) => this.publicPlayer(p, room)) });
     this.broadcastRoom(room);
   }
   state(client, msg) {
@@ -109,12 +114,28 @@ export class PartyServer {
     if (client.budget < 1) return;
     client.budget--;
     const state = cleanState(msg.s);
-    if (state) this.broadcast(room, { type: 'state', id: player.id, s: state }, player.id);
+    if (!state) return;
+    this.broadcast(room, { type: 'state', id: player.id, s: state }, player.id);
+    room.sim?.state(player.id, state);
   }
+  paint(client, msg) {
+    const { room, player } = client;
+    if (!room?.sim || !player.inFight) return;
+    const now = this.now();
+    client.paintBudget = Math.min(PARTY.paintsPerSecond, client.paintBudget + (now - client.paintAt) * PARTY.paintsPerSecond / 1000); client.paintAt = now;
+    if (client.paintBudget < 1) return;
+    client.paintBudget--;
+    room.sim.paint(player.id, msg, now);
+  }
+  pickup(client, msg) {
+    const { room, player } = client;
+    if (room?.sim && player.inFight && Number.isInteger(msg.id)) room.sim.pickup(player.id, msg.id, this.now());
+  }
+  tick(now = this.now()) { for (const room of this.rooms.values()) room.sim?.tick(now); }
   back(client) {
     const { room, player } = client;
     if (!room || !player.inFight) return;
-    player.inFight = false;
+    player.inFight = false; room.sim?.remove(player.id);
     this.broadcast(room, { type: 'gone', id: player.id }, player.id);
     this.settle(room);
   }
@@ -127,7 +148,7 @@ export class PartyServer {
   disconnect(client) {
     const { room, player } = client;
     if (!room || player.client !== client) return;
-    player.client = null; client.player = client.room = null;
+    player.client = null; client.player = client.room = null; room.sim?.remove(player.id);
     if (room.hostId === player.id) { const next = [...room.players.values()].find((p) => p.client); if (next) room.hostId = next.id; }
     player.dropTimer = this.setTimer(() => this.removePlayer(room, player), PARTY.reconnectMs);
     this.settle(room); this.broadcastRoom(room);
@@ -135,7 +156,7 @@ export class PartyServer {
   removePlayer(room, player) {
     if (!room.players.has(player.id)) return;
     if (player.dropTimer) this.clearTimer(player.dropTimer);
-    room.players.delete(player.id); this.tokens.delete(player.token);
+    room.players.delete(player.id); this.tokens.delete(player.token); room.sim?.remove(player.id);
     if (!room.players.size) { this.rooms.delete(room.code); return; }
     if (room.hostId === player.id) room.hostId = ([...room.players.values()].find((p) => p.client) ?? room.players.values().next().value).id;
     this.broadcast(room, { type: 'gone', id: player.id });
@@ -144,7 +165,7 @@ export class PartyServer {
   // A fight ends for the room once nobody connected is still in it.
   settle(room) {
     if (room.phase === 'fight' && ![...room.players.values()].some((p) => p.inFight && p.client)) {
-      room.phase = 'lobby'; for (const p of room.players.values()) p.inFight = false;
+      room.phase = 'lobby'; room.sim = null; for (const p of room.players.values()) p.inFight = false;
       this.broadcastRoom(room);
     }
   }
