@@ -30,7 +30,13 @@ The giant is covered in stickers you'd find on a programmer's laptop: **Y Combin
 - **Deadline Stomp:** he stomps the floor shouting *"DEADLINE!"* and rocks burst out of the ground.
 - **Superman slam:** he leaps across the room and lands on you.
 
-Linglong talks back. Sometimes when he turns on the hose, he says things like *"Man, this code is some trash."* His voice comes from a real video recording.
+Linglong talks back. Sometimes when he turns on the hose, he says one of his three lines:
+
+- *"Man, this code is some trash."*
+- *"Apologise to the codebase."*
+- *"Man, no one in China has that shit."*
+
+His voice comes from a real video recording, and his words show up as captions on screen.
 
 ---
 
