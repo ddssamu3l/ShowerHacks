@@ -118,7 +118,7 @@ export class Water {
       for (let j = 0; j <= this.sides; j++) {
         const theta = j / this.sides * Math.PI * 2, k = (i * (this.sides + 1) + j) * 3;
         const x = Math.cos(theta) * radius, y = Math.sin(theta) * radius;
-        this.centers.set(this.tempPoint.toArray(), k);
+        this.centers[k] = this.tempPoint.x; this.centers[k + 1] = this.tempPoint.y; this.centers[k + 2] = this.tempPoint.z;
         this.columnPositions[k] = this.tempPoint.x + this.axisA.x * x + this.axisB.x * y;
         this.columnPositions[k + 1] = this.tempPoint.y + this.axisA.y * x + this.axisB.y * y;
         this.columnPositions[k + 2] = this.tempPoint.z + this.axisA.z * x + this.axisB.z * y;
@@ -147,9 +147,9 @@ export class Water {
       if (p.life > 0) {
         p.v.y -= (p.mist ? 2 : HOSE.gravity) * dt; p.p.addScaledVector(p.v, dt);
         if (p.p.y < .04) { p.p.y = .04; p.v.y = Math.abs(p.v.y) * .13; p.v.x *= .84; p.v.z *= .84; p.life = Math.min(p.life, .12); }
-        this.positions.set(p.p.toArray(), k); this.sizes[i] = p.size * (p.mist ? 1 + 2 * (1 - p.life / p.ttl) : 1);
+        this.positions[k] = p.p.x; this.positions[k + 1] = p.p.y; this.positions[k + 2] = p.p.z; this.sizes[i] = p.size * (p.mist ? 1 + 2 * (1 - p.life / p.ttl) : 1);
         this.alphas[i] = (p.mist ? .12 : .85) * Math.min(1, p.life * 7);
-        if (!p.mist) { this.trails.set(p.p.toArray(), j); this.trails[j + 3] = p.p.x - p.v.x * .005; this.trails[j + 4] = p.p.y - p.v.y * .005; this.trails[j + 5] = p.p.z - p.v.z * .005; }
+        if (!p.mist) { this.trails[j] = p.p.x; this.trails[j + 1] = p.p.y; this.trails[j + 2] = p.p.z; this.trails[j + 3] = p.p.x - p.v.x * .005; this.trails[j + 4] = p.p.y - p.v.y * .005; this.trails[j + 5] = p.p.z - p.v.z * .005; }
         else { this.trails[j + 1] = this.trails[j + 4] = -999; }
       } else { this.alphas[i] = 0; this.positions[k + 1] = -999; this.trails[j + 1] = this.trails[j + 4] = -999; }
     }

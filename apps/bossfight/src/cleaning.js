@@ -24,13 +24,16 @@ export class CleaningSurface {
   reset() { this.cleanedArea = 0; for (const group of this.groups) group.clean = 0; }
   paint(point, normal, radius, rate, dt) {
     if (!(radius > 0 && rate > 0 && dt > 0) || ![...point, ...normal, radius, rate, dt].every(Number.isFinite)) return [];
-    const changed = []; const r2 = radius * radius;
+    const changed = []; const r2 = radius * radius, normals = this.normals;
+    const [px, py, pz] = point, [nx, ny, nz] = normal;
     for (const group of this.groups) {
       if (group.clean >= 1) continue;
-      const d2 = group.p.reduce((s, p, k) => s + (p - point[k]) ** 2, 0);
+      const p = group.p, d2 = (p[0] - px) ** 2 + (p[1] - py) ** 2 + (p[2] - pz) ** 2;
       if (d2 > r2) continue;
       // Keep the brush on the facing surface, rather than washing through the body.
-      if (!group.vertices.some(i => normal.reduce((s, n, k) => s + n * this.normals[i * 3 + k], 0) > .2)) continue;
+      let facing = false;
+      for (const i of group.vertices) if (nx * normals[i * 3] + ny * normals[i * 3 + 1] + nz * normals[i * 3 + 2] > .2) { facing = true; break; }
+      if (!facing) continue;
       const exposure = rate * dt * (1 - .65 * d2 / r2);
       const before = group.clean; group.clean = Math.min(1, before + exposure);
       this.cleanedArea += (group.clean - before) * group.area; changed.push(group);

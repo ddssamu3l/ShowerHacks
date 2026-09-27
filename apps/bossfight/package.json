@@ -2,12 +2,21 @@
   "name": "@shower-souls/animation-lab",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
+    "start": "node scripts/start.mjs",
     "animate": "node scripts/bake.mjs",
     "test": "node --test scripts/*.test.mjs"
   },
-  "dependencies": { "three": "^0.186.1" },
-  "devDependencies": { "esbuild": "^0.28.2" }
+  "dependencies": {
+    "three": "^0.186.1",
+    "three-mesh-bvh": "^0.9.15"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
 }

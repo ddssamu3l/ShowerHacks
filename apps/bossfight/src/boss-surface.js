@@ -1,5 +1,7 @@
 import * as T from 'three';
+import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 import { CleaningSurface } from './cleaning.js';
+import { canSkinFast, skinnedWorldPositions } from './skinning.js';
 
 export class BossSurface {
   constructor(mesh, targets, cleanTexture) {
@@ -15,15 +17,20 @@ export class BossSurface {
       shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vClean; uniform sampler2D cleanMap;').replace('#include <map_fragment>', '#ifdef USE_MAP\ndiffuseColor *= mix(texture2D(map, vMapUv), texture2D(cleanMap, vMapUv), smoothstep(0.0, 1.0, vClean));\n#endif').replace('#include <normal_fragment_maps>',T.ShaderChunk.normal_fragment_maps.replace('mapN.xy *= normalScale;', 'mapN.xy *= normalScale * (1.0 - vClean);')).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, texture2D(cleanMap, vMapUv).a, vClean);');
     };
     mesh.material.customProgramCacheKey=()=> 'local-clean-v2-unbranded';
-    const collision=new T.BufferGeometry();collision.setAttribute('position',new T.BufferAttribute(new Float32Array(this.rest.length),3));collision.setIndex(this.geometry.index);
-    this.collision=new T.Mesh(collision,new T.MeshBasicMaterial({side:T.DoubleSide}));
+    // The BVH reorders its own index copy; the rendered mesh keeps the original.
+    const collision=new T.BufferGeometry();collision.setAttribute('position',new T.BufferAttribute(new Float32Array(this.rest.length),3));collision.setIndex(this.geometry.index.clone());
+    this.collision=new T.Mesh(collision,new T.MeshBasicMaterial({side:T.DoubleSide}));this.collision.raycast=acceleratedRaycast;
     this.ray=new T.Raycaster();this.vertex=new T.Vector3();this.triangle=new T.Triangle();this.bary=new T.Vector3();
+    this.fastSkin=canSkinFast(mesh);
     this.updateCollision();
+    collision.boundsTree=new MeshBVH(collision);
   }
   updateCollision() {
     this.mesh.updateWorldMatrix(true,false);this.mesh.skeleton.update();
     const p=this.collision.geometry.attributes.position;
-    for(let i=0;i<p.count;i++){this.mesh.getVertexPosition(i,this.vertex).applyMatrix4(this.mesh.matrixWorld);p.setXYZ(i,this.vertex.x,this.vertex.y,this.vertex.z);}
+    if(this.fastSkin)skinnedWorldPositions(this.mesh,p.array);
+    else for(let i=0;i<p.count;i++){this.mesh.getVertexPosition(i,this.vertex).applyMatrix4(this.mesh.matrixWorld);p.setXYZ(i,this.vertex.x,this.vertex.y,this.vertex.z);}
+    this.collision.geometry.boundsTree?.refit();
     this.collision.geometry.computeBoundingBox();this.collision.geometry.computeBoundingSphere();
   }
   cast(origin,end) {

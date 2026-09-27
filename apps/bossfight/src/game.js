@@ -15,7 +15,8 @@ import { stompContact } from './stomp.js';
 import { makeArena } from './arena.js';
 
 const $=id=>document.getElementById(id), canvas=$('game');
-const renderer=new T.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.9;
+const MAX_PIXEL_RATIO=Math.min(devicePixelRatio,1.6);let pixelRatio=MAX_PIXEL_RATIO;
+const renderer=new T.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(pixelRatio);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.9;
 const scene=new T.Scene(),camera=new T.PerspectiveCamera(58,innerWidth/innerHeight,.08,130);const arena=makeArena(scene,renderer),water=new Water(scene);
 const fight=new CombatState(),keys=new Set(),buttons=new Set();
 const spells = new BossSpells(scene), footfalls = new Footfalls(scene);
@@ -300,12 +301,20 @@ function updateHUD(){
   $('boss-action').textContent=practice?'PRACTICE · THE BOSS IS PASSIVE':bossState==='attack'?`${(SPELLS[attack]?.name ?? CLIPS.boss.find(c=>c.id===attack).name).toUpperCase()} · ${bossTime<(SPELLS[attack]?.strikeStart ?? ATTACKS[attack].windows[0].start)?'WINDUP':bossTime>(SPELLS[attack]?.strikeEnd ?? ATTACKS[attack].windows.at(-1).end)?'RECOVERY':'STRIKE'}`:bossState==='recover'?'RECOVERING · KEEP WASHING':bossState==='approach'?'HE IS COMING FOR YOU.':'WATCH HIS HANDS.';
   $('mode-label').textContent=mode==='jet'?'PRESSURE JET':'SHOWER CONE';$('mode-description').textContent=mode==='jet'?'RMB · FOCUSED CLEANING':'LMB · WIDE COVERAGE';$('hit-marker').style.opacity=time<hitUntil?1:0;$('toast').style.opacity=time<toastUntil?1:0;
 }
-function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();water.resize(innerHeight,renderer.getPixelRatio());}window.addEventListener('resize',resize);resize();
+function resize(){renderer.setPixelRatio(pixelRatio);renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();water.resize(innerHeight,renderer.getPixelRatio());}window.addEventListener('resize',resize);resize();
+// Slow GPUs drop render resolution in steps; it never climbs back, so it cannot oscillate.
+const RESOLUTION={window:90,slowMs:22,step:.2,min:Math.min(MAX_PIXEL_RATIO,.75)},frameIntervals=[];
+function adaptResolution(interval){
+  if(interval>100||pixelRatio<=RESOLUTION.min)return;
+  frameIntervals.push(interval);if(frameIntervals.length<RESOLUTION.window)return;
+  frameIntervals.sort((a,b)=>a-b);const median=frameIntervals[frameIntervals.length>>1];frameIntervals.length=0;
+  if(median>RESOLUTION.slowMs){pixelRatio=Math.max(RESOLUTION.min,pixelRatio-RESOLUTION.step);resize();}
+}
 function frame(now){
-  requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.04);last=now;
+  requestAnimationFrame(frame);const interval=now-last,dt=Math.min(interval/1000,.04);last=now;
   if(loaded){
     if(phase==='fight'){
-      time+=dt;footfalls.update(dt);updatePlayer(dt);updateBoss(dt);updateCamera(dt);updateNozzle();updateSupplies(dt);spray(dt);water.update(dt);soundtrack?.tick(time,water.flowing,practice);updateHUD();
+      adaptResolution(interval);time+=dt;footfalls.update(dt);updatePlayer(dt);updateBoss(dt);updateCamera(dt);updateNozzle();updateSupplies(dt);spray(dt);water.update(dt);soundtrack?.tick(time,water.flowing,practice);updateHUD();
       if(fight.state==='dead')finish(false);else if(fight.health>0&&surface.clean.won)finish(true);
     }else if(phase==='menu'){
       pickups.update(time,false,false);
