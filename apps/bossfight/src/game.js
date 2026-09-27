@@ -101,6 +101,7 @@ function initAudio() {
       $('boss-line').textContent = text; $('boss-line').classList.toggle('speaking', !!text);
     });
     playerVoice = new PlayerVoice(audio, audioMaster, { busy: () => !!soundtrack.voice, onSpeaking: speaking => soundtrack.setPlayerSpeaking(speaking) });
+    soundtrack.onSpeak = () => playerVoice.stop();
   }
   audio.resume(); soundtrack.setPlaying(phase === 'fight');
 }

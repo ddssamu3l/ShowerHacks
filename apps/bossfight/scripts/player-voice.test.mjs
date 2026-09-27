@@ -65,3 +65,14 @@ test('boss music ducks and taunts wait while the player speaks', async t => {
   boss.setPlayerSpeaking(false); assert.equal(boss.musicGain.gain.value, .38);
   boss.tick(50, false, false); assert.ok(boss.voice);
 });
+
+test('a boss spell callout cuts the player off', async t => {
+  serveAudio(t);
+  const boss = new BossAudio(fakeContext(), {}, () => {}), player = new PlayerVoice(fakeContext(), {}, { random: () => .1, busy: () => !!boss.voice, onSpeaking: s => boss.setPlayerSpeaking(s) });
+  boss.onSpeak = () => player.stop();
+  await Promise.all([boss.ready, player.ready]); boss.setPlaying(true); player.reset(0);
+  assert.ok(player.attack(10)); const line = player.voice;
+  assert.equal(boss.say('agents', 10.1, true), true);
+  assert.equal(line.stopped, true); assert.equal(player.voice, null); assert.equal(boss.playerSpeaking, false);
+  assert.equal(boss.musicGain.gain.value, .11);
+});

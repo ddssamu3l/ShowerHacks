@@ -43,7 +43,7 @@ export class BossAudio {
   }
   say(id, now, interrupt = false) {
     if (!this.playing || !this.buffers.has(id) || (this.voice && !interrupt)) return false;
-    this.stopVoice(); const token = this.serial;
+    this.onSpeak?.(); this.stopVoice(); const token = this.serial;
     const voice = this.context.createBufferSource(); voice.buffer = this.buffers.get(id); voice.connect(this.voiceGain); this.voice = voice;
     this.lastLine = id; this.nextTaunt = now + 11 + Math.random() * 4;
     this.onLine(BOSS_LINES[id]); this.musicGain.gain.setTargetAtTime(.11, this.context.currentTime, .07);
