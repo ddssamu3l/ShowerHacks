@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "node scripts/serve.mjs",
-    "build": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs && node scripts/optimize-models.mjs",
     "start": "node scripts/start.mjs",
     "animate": "node scripts/bake.mjs",
     "test": "node --test scripts/*.test.mjs"
@@ -18,6 +18,10 @@
     "ws": "^8.22.0"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
+    "esbuild": "^0.28.2",
+    "sharp": "^0.35.4"
   }
 }
