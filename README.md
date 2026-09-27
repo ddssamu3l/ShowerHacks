@@ -574,3 +574,113 @@ The web server normally runs with `apps/web` as its working directory; centraliz
 5. **Together:** run a full sample session, check that the last shower interval counts and the final response stays visible, verify the next typing timer starts immediately, save a score, restart the server, and confirm it remains on the board. Retry the same save and confirm no duplicate. Run `npm run validate:sessions`, `npm run typecheck`, and `npm run build` before merging.
 
 Suggested branches: `feat/ui`, `feat/sessions`, `feat/game-engine`, and `feat/vision`. Each owner works in their directories; agree on contract changes first and update this README plus the shared types together. Install dependencies from the root with `npm install <package> --workspace <workspace-name>` and commit the lockfile with dependency changes.
+
+## Separate project: Shower Souls
+
+`apps/bossfight/` is the standalone third-person browser bossfight. It runs independently from the webcam activities, Next.js app, and contracts above.
+
+Run **`npm run boss:dev`**, then open **http://127.0.0.1:4173**. Click **Enter the stall** for the fight, or **Practice cleaning** for a passive boss. Reduce the **Stink Meter from 100% to 10%** before Linglong's 100 HP runs out (the same 90% surface-cleaning victory condition). The giant shower stall contains oversized tilework, a drain, soap, glass framing, plumbing, and the supplied garden nozzle.
+
+| Control | Action |
+| --- | --- |
+| WASD | Move relative to the camera; spraying slows movement |
+| Mouse | Aim / orbit the third-person camera |
+| Hold left mouse | Wide shower, larger coverage at a lower cleaning rate |
+| Hold right mouse | Concentrated jet, smaller coverage, greater range and cleaning rate |
+| Space | Directional dodge; defaults forward with no movement input |
+| Q | Toggle boss lock-on; moving the mouse returns to free aim |
+| F / G | Toggle continuous shower / jet as an alternative to holding a mouse button |
+| Esc | Pause; resume, restart, or return to the menu |
+
+Clicking the game captures the mouse when the browser permits it. If capture is unavailable, hold and drag to aim, or use Q with F/G. Losing focus or unlocking a captured mouse pauses the simulation. The gothic menu, death/results screen, retry, and reset of health/cleaning/water are included. Practice is explicitly labeled and uses the same cleaning calculations. The supplied Godfrey soundtrack and natural-pitch, brisk male voice clips are bundled locally and start after the first interaction. The header Sound button mutes all audio; the pause menu has a master-volume slider. Music ducks beneath voiced lines, subtitles display the dialogue, and pausing/end screens silence the encounter. The gothic serif typography uses Google Fonts with local fallbacks.
+
+### Fight and animation ownership
+
+| File | Responsibility |
+| --- | --- |
+| `src/game.js` | Input, third-person camera, boss decisions, attack commitment, movement, collision wiring, menus and results |
+| `src/combat.js` | Player health/state machine, i-frames, buffered rolls, attack windows and capsule intersection |
+| `src/cleaning.js` | Pure exposure-based, welded-vertex cleaning and surface-area scoring; water trajectory helper |
+| `src/boss-surface.js` | Animated collision surface, hit-to-rest-pose mapping, clean texture shader and local geometry blending |
+| `src/water.js` | High-pressure turbulent water column, curved collision traces, moving streaks/mist, surface-attached foam and reflected impact spray |
+| `src/water-supply.js`, `src/bottle-pickups.js` | Limited water reserve, pickup/respawn rules, glowing bottle meshes and refill effects |
+| `src/boss-spells.js`, `src/spell-rules.js`, `src/stomp.js`, `src/stomp-effects.js` | Agent Swarm, YC blast, cone stomp, Claude drop, tracking deadlines and spell hit volumes |
+| `src/boss-audio.js`, `scripts/make-audio.mjs` | User-selected looping music, natural-pitch male voice lines, subtitle timing, ducking and audio asset regeneration |
+| `src/arena.js` | Giant shower stall, lighting, fixtures and props |
+| `src/motion.js`, `src/boss-walk.js`, `src/footfalls.js` | Authored poses, bounded forward arm hinges, leg IK, distance-matched walking, alternating foot contacts and cosmetic crash effects |
+| `src/main.js`, `lab.html` | Separate animation and hitbox inspection lab |
+| `scripts/bake.mjs` | Exports authored poses as native 60 fps skeletal animation tracks |
+| `scripts/prepare-assets.py` | Blender asset preparation: nozzle optimization and clean boss transfer |
+| `scripts/unbrand-clean.mjs` | Native garment material partition for the clean boss; removes all outfit branding |
+
+The boss is **3× the player's height** (5.55 versus 1.85 world units). He turns toward the player before attacks and walks at **5.6 units/second** at distance, **4.5** close up. The new walk pairs each forward leg with the opposite arm, keeps elbows bent forward, and matches animation phase to distance traveled so planted feet do not slide during straight travel. Foot contacts trigger wet splashes, shock rings, a layered crash/rumble and distance-scaled camera shake; these effects cause no damage. Pose changes blend over 0.16 seconds.
+
+The active encounter is spell-heavy: **Agent Swarm, YC Rejection, Deadline Stomp, Claude Drop, and Superman slam**. The old sweeping swat, fist slam, low kick, small stomp and melee charge remain inspectable in the lab but are no longer selected in the fight. The opening rotation demonstrates Swarm → YC → Stomp → Superman, followed by distance-based selection without immediate repeats. Each attack has a recovery opening.
+
+The roll lasts **0.80 seconds**, with invulnerability for its first **0.42 seconds** and vulnerable recovery afterward. Any successful attack knocks the player down for **0.90 seconds**, followed by **1.25 seconds** of protected get-up. A roll pressed in the final **0.18 seconds** of get-up is buffered and starts at the recovery deadline, with no vulnerable transition frame. Each attack window damages only once; charge steps are separate windows. Zero health finishes the fall and opens **You died**. These are prototype timings for our clips, not exact frame data from a particular Dark Souls release.
+
+### Water reserves and encounter effects
+
+The hose has a continuous turbulent core, moving streaks, spray mist, and a slight gravity arc. Jet launch speed is 48 world units/second with a 23-unit range; shower speed is 38 with a 15-unit range. Impacts throw droplets away from the boss surface and briefly attach foam rings to the animated hit triangle. Cleaning still requires sustained exposure.
+
+Each run starts with **100 water**. Shower consumes **6/second** (~16.7 seconds of continuous flow); jet consumes **9/second** (~11.1 seconds). Six glowing bottles each restore **45**, capped at 100, and respawn after **12 seconds of active game time**. Walking or rolling within 1.2 units collects a bottle automatically. Full tanks leave bottles available. There is no passive tank regeneration. Pausing freezes consumption and pickup timers; retry resets both. Empty water stops the stream and cleaning, and even the final partial frame only receives the cleaning exposure paid for by its remaining water.
+
+The blue reserve bar turns amber below 25%, warns when empty, and a direction/distance guide points to the nearest available bottle. Refill sounds and floating feedback confirm collection. The same limits apply in practice so the entire supply loop can be tested without attacks.
+
+Spell timings and targeting are shared through `src/spell-rules.js`:
+
+- **Agent Swarm:** seven small robot agents fall into distinct, marked ground locations around the player's position when cast. Impacts are staggered from 1.35 to 3.03 seconds, each with a 0.18-second, 1.15-unit-radius damage window. Markers stay committed; keeping moving escapes the pattern.
+- **YC Rejection:** the boss crouches, turns toward the player and builds a large orange orb between his hands. Aim tracks until 2.45 seconds, then commits for 0.40 seconds before an enormous 2.7-unit-wide blast from 2.85–3.40 seconds. Damage is 42, once per cast; the blast cannot sweep after firing.
+- **Deadline Stomp:** the boss braces on his left leg, chambers his right knee, then drives the heel down at 1.08 seconds. His torso compresses and rebounds, his arms counterbalance, and the striking foot stays planted before he steps back. The landing marker and facing lock at 0.65 seconds. Seven rows of jagged stone spikes erupt along the 10-unit, 71° damage cone, with cracked tile, flying gravel, bouncing fragments, dust and a layered crash. The advancing band damages for 32 until 1.58 seconds, once per cast. Remaining rocks fade as harmless debris; the area behind the boss is safe. Animation, hit volumes, eruption timing and contact position share `src/stomp.js`.
+- **Claude Drop:** the existing orange sunburst lands in a marked 2.25-unit area, damaging only from 1.70–1.87 seconds.
+- **Superman slam:** can travel up to 17 units, follows the player through the early leap until 0.95 seconds, then commits to the marked destination. Landing is at 1.45 seconds, leaving 0.50 seconds after tracking ends to evade. Arm posing now uses a forward elbow hinge.
+
+The existing roll and knockdown protection apply to every spell. Visual rings, trails, residual robots and fading effects outside active windows cause no damage.
+
+The active music is **[Godfrey, First Elden Lord](https://www.youtube.com/watch?v=lHqZZkDvW-o)** from the user-supplied link, saved as `public/audio/godfrey.ogg` (196.88 seconds). A Web Audio buffer source loops it at the end, with no YouTube iframe or network dependency during play. Its source is recorded in `public/audio/manifest.json`. Music ducks under dialogue; volume/mute cover both music and effects. The previous procedural score remains an optional unused asset.
+
+Periodic taunts include “STOP SHOWERING ME!”, “MY RUNWAY IS INFINITE!”, and “YOU CALL THAT A PITCH?” Special attacks announce “AGENT SWARM!”, “DEADLINE!”, “CLAUDE DROP!” or “YOU WILL NOT GET INTO YC!” Voice clips use macOS **Reed (English (US))**, at natural pitch with brisk delivery, midrange emphasis and light compression. The previous ogre pitch shift and bass boost are removed. These are synthesized prototype performances.
+
+Audio assets live in `apps/bossfight/public/audio/`. Regenerate dialogue on macOS with `node apps/bossfight/scripts/make-audio.mjs` (requires `say` and FFmpeg); this preserves the selected soundtrack. Add `--original-score` only to regenerate the unused original composition too. Playback on other machines only needs the bundled Ogg files.
+
+### Local cleaning and model compatibility
+
+A water hit is detected against the **currently posed boss mesh** along a gravity-curved trajectory. The hit triangle maps back to the original rest surface, where nearby facing vertices accumulate exposure. UV-split duplicates share their cleaning value so seams stay together. A patch takes sustained spray: the focused jet adds up to 1.5 exposure/second, the shower up to 0.95, with brush-edge falloff. Already clean patches add no progress. Total progress is triangle-area weighted, not a count of clicks, frames, or vertices. The win threshold is 90% cleaned; the HUD and results show **stink remaining**, from 100% down to 0%.
+
+The two supplied boss models have different topology, UV atlases, and skin weights (28,406 versus 25,643 vertices). `unbrand-clean.mjs` derives `boss_clean-unbranded.glb` from the original clean model. It partitions the existing triangles into plain ivory cotton, pale slate outerwear/backpack, charcoal trousers, unmarked shoes, and a plain wrist strap. Garments use texture-free materials so logos cannot remain in base color or normal maps; the head, hair, neck and hands retain their original appearance. Geometry, UVs, rig and skin weights are preserved. `prepare-assets.py` projects this unbranded clean model's surface positions/normals, material colors and roughness onto the dirty model's topology. At runtime, cleaned vertices gradually approach that transferred clean surface while the material blends locally to the transferred clean texture. The original dirty skeleton/weights keep every patch attached during animation. This is an **approximate surface transfer**, rather than a direct blend of incompatible meshes; very small texture details and the original clean rig's exact silhouette can differ. Normal-map detail fades in cleaned areas, and roughness gradually matches the clean fabric material. Original Downloads files are untouched.
+
+Generated preparation assets in `public/models/`:
+
+- `nozzle.glb`: supplied ~1.94-million-triangle nozzle reduced to **21,999 triangles**, around **798 KB**.
+- `boss_clean-unbranded.glb`: clean boss with plain garment materials and original exposed skin/hair. `boss_clean-animated.glb` is animated from this version.
+- `clean-transfer.png`: 1024px unbranded clean appearance baked onto the dirty UV atlas, with edge dilation. RGB contains sRGB base color; alpha stores clean material roughness.
+- `clean-surface.bin`: six little-endian float32 values per dirty vertex: clean target XYZ and normal XYZ.
+- `clean-transfer.json`: vertex count and preparation metadata.
+
+To regenerate these assets with Blender installed:
+
+```sh
+node apps/bossfight/scripts/unbrand-clean.mjs
+/Applications/Blender.app/Contents/MacOS/Blender -b --python apps/bossfight/scripts/prepare-assets.py
+npm run boss:animate
+```
+
+When changing only the clean outfit, add `-- --clean-only` to the Blender command to skip nozzle processing.
+
+The preparation script reads the nozzle from `/Users/dengjingxi/Downloads/garden+hose+nozzle+3d+model.glb`; update that path if regenerating on another machine. Running the game only requires the prepared files already in `public/models/`.
+
+### Animation lab and validation
+
+Open **http://127.0.0.1:4173/lab.html** for the preserved animation lab. Pick a model/clip, switch lineup/solo, orbit, pause, scrub, slow down, inspect skeletons and hitboxes, or download animated GLBs. **Test combat** repeats the selected attack with WASD, Space and R; it is a focused hitbox sandbox. Horizontal travel and turning are supplied by the controller; exported clips remain in place.
+
+| Export | Clips |
+| --- | --- |
+| `linglong-animated.glb` | `ready`, `jog_forward`, `jog_backward`, `jog_left`, `jog_right`, `dodge`, `spray`, `hit`, `knockdown`, `getup` |
+| `boss-animated.glb` | `idle`, `advance`, `turn_left`, `turn_right`, `sweep`, `slam`, `kick`, `stomp`, `charge`, `jump_slam`, `yc_charge`, `agent_cast`, `giant_stomp`, `stagger`, `clean_victory` |
+| `boss_clean-animated.glb` | Same fifteen boss clips, authored for the clean model's proportions |
+
+The lab opens on the new heavy walk in Solo view. Open `/lab.html?clip=giant_stomp` directly for the revised stomp and rock eruption. Belly flop has been removed from the controller, hitboxes and exported animation library. Use Side to inspect opposite arm/leg motion, enable Footfall sound for the crash effects, or select the new casting clips to preview spell effects. Legacy melee clips remain available for reference.
+
+`npm run boss:animate` rebuilds animation exports. `npm run build --workspace @shower-souls/animation-lab` bundles both game and lab. `npm run test:boss` checks original asset preservation, animation tracks and seams, ground contact, dive bounces, combat invulnerability/death/collision boundaries, gradual cleaning, frame-rate independent exposure, area-weighted victory/reset, gravity, generated asset compatibility, unbranded garment coverage without topology or rig changes, reserve depletion/partial exposure, pickup caps/respawns/reset, curved water impacts, spell timing/dodge safety, cone/swarm coverage, long-range dive targeting, opposing walking limbs, planted-foot travel, footfall cadence, decreasing stink, and shipped audio assets.
+
+This is a playable first pass. Combat balance, transitions between clips, camera collision around props, and the fidelity of the clean appearance need hands-on iteration. The arena boundary constrains movement; decorative props currently do not block characters. Cleaning is a surface brush approximation around the first water hit, rather than fluid simulation.

@@ -1,0 +1,319 @@
+{
+  "fps": 60,
+  "clips": {
+    "player": [
+      {
+        "id": "ready",
+        "name": "Hose ready",
+        "duration": 2.4,
+        "loop": true,
+        "note": "Steady hands, breathing, weight in the knees."
+      },
+      {
+        "id": "jog_forward",
+        "name": "Jog forward",
+        "duration": 0.8,
+        "loop": true,
+        "note": "Two-beat run cycle with a stable hose grip."
+      },
+      {
+        "id": "jog_backward",
+        "name": "Jog backward",
+        "duration": 0.8,
+        "loop": true,
+        "note": "Short retreating steps. Aim stays forward."
+      },
+      {
+        "id": "jog_left",
+        "name": "Strafe left",
+        "duration": 0.8,
+        "loop": true,
+        "note": "Lateral footwork with shoulders facing the target."
+      },
+      {
+        "id": "jog_right",
+        "name": "Strafe right",
+        "duration": 0.8,
+        "loop": true,
+        "note": "Lateral footwork with shoulders facing the target."
+      },
+      {
+        "id": "dodge",
+        "name": "Dodge roll",
+        "duration": 0.8,
+        "loop": false,
+        "phases": [
+          0.12,
+          0.54
+        ],
+        "note": "Quick tuck, shoulder roll, then back onto both feet."
+      },
+      {
+        "id": "spray",
+        "name": "Brace & spray",
+        "duration": 1.2,
+        "loop": true,
+        "note": "Subtle pressure in the shoulders; hands stay on the nozzle."
+      },
+      {
+        "id": "hit",
+        "name": "Take a hit",
+        "duration": 0.6,
+        "loop": false,
+        "phases": [
+          0.08,
+          0.18
+        ],
+        "note": "Sharp recoil, a stagger, then recover the grip."
+      },
+      {
+        "id": "knockdown",
+        "name": "Knocked down",
+        "duration": 0.9,
+        "loop": false,
+        "note": "Lose balance, fall backward, and land on the ground. Protected."
+      },
+      {
+        "id": "getup",
+        "name": "Get back up",
+        "duration": 1.25,
+        "loop": false,
+        "note": "Recover from the ground. Protected until control returns."
+      }
+    ],
+    "boss": [
+      {
+        "id": "idle",
+        "name": "Bad attitude",
+        "duration": 2.4,
+        "loop": true,
+        "note": "Heavy breathing and a hunched, threatening guard."
+      },
+      {
+        "id": "advance",
+        "name": "Heavy walk",
+        "duration": 1.12,
+        "loop": true,
+        "contacts": [
+          {
+            "time": 0,
+            "side": "Left"
+          },
+          {
+            "time": 0.56,
+            "side": "Right"
+          }
+        ],
+        "note": "Planted heels, rolling weight, relaxed elbows. Left leg / right arm forward, then reverse."
+      },
+      {
+        "id": "turn_left",
+        "name": "Turn left",
+        "duration": 0.9,
+        "loop": true,
+        "note": "Short turning steps. The controller rotates the boss to face you."
+      },
+      {
+        "id": "turn_right",
+        "name": "Turn right",
+        "duration": 0.9,
+        "loop": true,
+        "note": "Short turning steps. Attacks wait until the boss is facing you."
+      },
+      {
+        "id": "sweep",
+        "name": "Low sweeping swat",
+        "duration": 2.1,
+        "loop": false,
+        "phases": [
+          0.75,
+          1.08
+        ],
+        "note": "Crouch down → rake across player height → recover slowly."
+      },
+      {
+        "id": "slam",
+        "name": "Double-fist slam",
+        "duration": 2.2,
+        "loop": false,
+        "phases": [
+          0.85,
+          1.15
+        ],
+        "note": "Hands overhead → ground impact → long recovery."
+      },
+      {
+        "id": "kick",
+        "name": "Get-away kick",
+        "duration": 1.8,
+        "loop": false,
+        "phases": [
+          0.6,
+          0.92
+        ],
+        "note": "Lift the knee → kick forward at the small player → plant."
+      },
+      {
+        "id": "stomp",
+        "name": "Crushing stomp",
+        "duration": 1.9,
+        "loop": false,
+        "phases": [
+          0.7,
+          0.98
+        ],
+        "note": "Raise one foot → stomp the ground ahead → shift back."
+      },
+      {
+        "id": "charge",
+        "name": "Stampeding charge",
+        "duration": 3.1,
+        "loop": false,
+        "phases": [
+          0.65,
+          1.93
+        ],
+        "impacts": [
+          1.05,
+          1.45,
+          1.85
+        ],
+        "note": "Lean in → three heavy stomping steps → brake and recover."
+      },
+      {
+        "id": "jump_slam",
+        "name": "Superman slam",
+        "duration": 3.4,
+        "loop": false,
+        "phases": [
+          0.6,
+          1.6
+        ],
+        "impacts": [
+          1.45
+        ],
+        "note": "Jump high → fists-first dive → full-body landing → get up."
+      },
+      {
+        "id": "yc_charge",
+        "name": "YC rejection charge",
+        "duration": 4.4,
+        "loop": false,
+        "phases": [
+          2.85,
+          3.4
+        ],
+        "note": "Deep crouch, gathering light between the hands, then a huge committed blast."
+      },
+      {
+        "id": "agent_cast",
+        "name": "Deploy agents",
+        "duration": 4.4,
+        "loop": false,
+        "phases": [
+          1.35,
+          3.21
+        ],
+        "note": "Raise a casting arm and command the marked swarm drops."
+      },
+      {
+        "id": "giant_stomp",
+        "name": "Deadline stomp",
+        "duration": 2.6,
+        "loop": false,
+        "phases": [
+          1.08,
+          1.58
+        ],
+        "impacts": [
+          1.08
+        ],
+        "note": "Brace on the left leg → chamber the right knee → drive the heel down → rock spikes tear through the marked cone."
+      },
+      {
+        "id": "stagger",
+        "name": "Water stagger",
+        "duration": 0.85,
+        "loop": false,
+        "phases": [
+          0.1,
+          0.25
+        ],
+        "note": "Recoil from a face full of water, then regain composure."
+      },
+      {
+        "id": "clean_victory",
+        "name": "Freshly washed",
+        "duration": 3.6,
+        "loop": false,
+        "note": "Inspect clean hands, admire the jacket, strike a proud pose."
+      }
+    ]
+  },
+  "models": [
+    {
+      "file": "linglong",
+      "kind": "player",
+      "height": 0.9802858460898278,
+      "output": "linglong-animated.glb",
+      "clips": [
+        "ready",
+        "jog_forward",
+        "jog_backward",
+        "jog_left",
+        "jog_right",
+        "dodge",
+        "spray",
+        "hit",
+        "knockdown",
+        "getup"
+      ]
+    },
+    {
+      "file": "boss",
+      "kind": "boss",
+      "height": 0.9732666909694672,
+      "output": "boss-animated.glb",
+      "clips": [
+        "idle",
+        "advance",
+        "turn_left",
+        "turn_right",
+        "sweep",
+        "slam",
+        "kick",
+        "stomp",
+        "charge",
+        "jump_slam",
+        "yc_charge",
+        "agent_cast",
+        "giant_stomp",
+        "stagger",
+        "clean_victory"
+      ]
+    },
+    {
+      "file": "boss_clean",
+      "kind": "boss",
+      "height": 0.9736941872688476,
+      "output": "boss_clean-animated.glb",
+      "clips": [
+        "idle",
+        "advance",
+        "turn_left",
+        "turn_right",
+        "sweep",
+        "slam",
+        "kick",
+        "stomp",
+        "charge",
+        "jump_slam",
+        "yc_charge",
+        "agent_cast",
+        "giant_stomp",
+        "stagger",
+        "clean_victory"
+      ]
+    }
+  ]
+}

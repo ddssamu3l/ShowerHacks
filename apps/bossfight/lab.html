@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shower Souls — Motion Lab</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <main>
+    <section id="stage" aria-label="Interactive 3D animation preview">
+      <header><a class="brand" href="/">SHOWER<span>SOULS</span></a><span class="eyebrow">MOTION STUDIES <i>01</i></span></header>
+      <div class="stage-heading"><span class="overline">HAND-AUTHORED / GIANT BOSS PASS</span><h1>A dirty fight.<br><em>A clean getaway.</em></h1><p>Boss: 3× player height. Watch your ankles.</p></div>
+      <canvas id="canvas" tabindex="0" aria-label="Animated player, dirty boss, and clean boss"></canvas>
+      <div id="combat-hud" hidden><div><span>LINGLONG</span><b id="health-text">100 / 100</b></div><progress id="health" value="100" max="100"></progress><strong id="combat-state">READY · VULNERABLE</strong><p>WASD move · SPACE roll · R restart</p></div>
+      <div id="death" hidden><strong>YOU DIED</strong><button id="retry">Try again</button></div>
+      <div id="loading" role="status"><span class="spinner"></span><span id="load-label">Waking up the skeletons…</span></div>
+      <div id="labels" aria-hidden="true"><span data-label="player">01 / LINGLONG <b>PLAYER · 1×</b></span><span data-label="dirty">02 / THE UNWASHED <b>DIRTY BOSS · 3×</b></span><span data-label="clean">03 / REDEMPTION <b>CLEAN BOSS · 3×</b></span></div>
+      <div class="view-tools"><button id="lineup">Lineup</button><button id="solo" class="active">Solo</button><span></span><button id="front">Front</button><button id="three-quarter">¾ view</button><button id="side">Side</button><button id="back">Back</button></div>
+      <div class="stage-bottom"><span><i class="live-dot"></i> REAL RIGS. REAL CLIPS.</span><span>DRAG TO ORBIT <b>·</b> SCROLL TO ZOOM</span></div>
+    </section>
+    <aside>
+      <div class="panel-heading"><span class="overline">THE CAST</span><span class="version">v0.1</span></div>
+      <div class="cast" role="group" aria-label="Choose character"><button data-model="player">Player</button><button data-model="dirty" class="active">Dirty boss</button><button data-model="clean">Clean boss</button></div>
+      <div class="combat-tools"><button id="combat-toggle">Test combat</button><label><input id="hitboxes" type="checkbox" checked /> Hitboxes</label></div>
+      <div class="selection-title"><span id="character-name">THE UNWASHED</span><h2 id="clip-title">Heavy walk</h2><p id="clip-note"></p></div>
+      <div class="clip-heading"><span class="overline">MOVEMENT LIBRARY</span><span id="clip-count"></span></div>
+      <div id="clips" class="clips"></div>
+      <div class="transport">
+        <div class="time-row"><span id="phase" class="phase">WINDUP</span><span id="time">0.00 / 1.80 s</span></div>
+        <input id="timeline" type="range" min="0" max="1.8" step="0.001" value="0" aria-label="Animation timeline" />
+        <div class="phase-track" id="phase-track"></div>
+        <div class="play-row"><button id="play" class="play">Pause</button><button id="restart" title="Restart clip">↺</button><label class="loop"><input id="repeat" type="checkbox" checked /> Repeat</label><select id="speed" aria-label="Playback speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></div>
+      </div>
+      <div class="toggles"><label><input id="skeleton" type="checkbox" /> Show skeleton</label><label><input id="footstep-sound" type="checkbox" /> Footfall sound</label><label><input id="travel" type="checkbox" checked /> Preview travel</label></div>
+      <a id="download" class="download" href="/models/boss-animated.glb" download>↓ DOWNLOAD ANIMATED GLB <span>15 CLIPS</span></a>
+      <p class="fine-print">In-place skeletal clips, sampled at 60 fps. Travel and stage effects are preview only. Dirty and clean bosses share timing.</p>
+    </aside>
+  </main>
+  <script type="module" src="/dist/main.js"></script>
+</body>
+</html>

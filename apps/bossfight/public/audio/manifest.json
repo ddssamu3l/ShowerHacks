@@ -1,0 +1,23 @@
+{
+  "music": {
+    "title": "Godfrey, First Elden Lord",
+    "file": "godfrey.ogg",
+    "source": "https://www.youtube.com/watch?v=lHqZZkDvW-o",
+    "seconds": 196.877688,
+    "loop": true,
+    "note": "User-selected soundtrack recording. Separate from the optional original procedural score."
+  },
+  "voice": {
+    "source": "macOS Reed (English (US)) male speech synthesis; natural pitch, brisk angry delivery, midrange bite and light compression; no ogre pitch drop",
+    "lines": {
+      "yc": "You will NOT get into Y C!",
+      "shower": "STOP! Showering me!",
+      "claude": "CLAUDE! DROP!",
+      "agents": "AGENT! SWARM!",
+      "deadline": "DEADLINE!",
+      "runway": "My runway is infinite!",
+      "pitch": "You call that a pitch?",
+      "intro": "This shower has no product market fit."
+    }
+  }
+}

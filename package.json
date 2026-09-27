@@ -11,6 +11,9 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "boss:dev": "npm run dev --workspace @shower-souls/animation-lab",
+    "boss:animate": "npm run animate --workspace @shower-souls/animation-lab",
+    "test:boss": "npm run test --workspace @shower-souls/animation-lab",
     "vision:prepare": "node scripts/prepare-vision.mjs",
     "vision:dev": "npm run vision:prepare && npm run dev",
     "test:vision": "node --import tsx --test packages/vision/src/*.test.ts",

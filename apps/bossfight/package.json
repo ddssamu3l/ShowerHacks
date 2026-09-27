@@ -1,0 +1,13 @@
+{
+  "name": "@shower-souls/animation-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "animate": "node scripts/bake.mjs",
+    "test": "node --test scripts/*.test.mjs"
+  },
+  "dependencies": { "three": "^0.186.1" },
+  "devDependencies": { "esbuild": "^0.28.2" }
+}

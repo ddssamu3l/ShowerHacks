@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Shower Souls — The Unwashed</title><link rel="stylesheet" href="/src/game.css"></head>
+<body>
+<canvas tabindex="0" id="game" aria-label="Shower Souls third-person boss fight"></canvas>
+<div class="grain"></div><div id="damage-flash"></div>
+<header><a class="wordmark" href="/">SHOWER<span>SOULS</span></a><span class="build-label">A TALE OF SOAP AND SORROW</span><div class="header-actions"><button id="audio-toggle" class="quiet" aria-label="Toggle sound">SOUND ON</button><button id="pause-button" class="quiet" hidden>ESC · PAUSE</button></div></header>
+<section id="hud" hidden aria-label="Fight status">
+  <div class="player-stats"><div class="stat-label"><span>LINGLONG</span><span id="health-label">100 / 100</span></div><div class="health-track"><i id="health-fill"></i></div><p id="player-state">KEEP YOUR DISTANCE</p>
+    <div id="water-reserve" class="water-reserve" role="progressbar" aria-label="Water reserve" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+      <div class="water-heading"><span><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M12 1C10 5 3 12 3 18a9 9 0 0 0 18 0C21 12 14 5 12 1Z" fill="currentColor"/><path d="M7 18c0 3 2 5 5 5" fill="none" stroke="#efffff" stroke-width="2" stroke-linecap="round"/></svg>WATER RESERVE</span><strong id="water-label">100%</strong></div>
+      <div class="water-track"><i id="water-fill"></i><b></b></div>
+      <span id="water-status">RUN OVER BLUE BOTTLES TO REFILL</span>
+    </div>
+  </div>
+  <div id="crosshair"><i></i><i></i><span id="hit-marker">✦</span></div>
+  <div class="water-mode"><span class="tiny">WATER PRESSURE</span><strong id="mode-label">SHOWER CONE</strong><span id="mode-description">LMB · COVER MORE GROUND</span></div>
+  <div id="refill-guide" class="refill-guide"><div class="refill-direction"><span id="refill-arrow" aria-hidden="true">↑</span><b id="refill-distance">3 m</b></div><div><span id="refill-title">WATER BOTTLES</span><p id="refill-instruction">Walk over a blue bottle · +45 water</p></div></div>
+  <div class="boss-stats"><div class="boss-heading"><div><span class="tiny">WARDEN OF THE WALK-IN</span><h2>THE UNWASHED</h2></div><div class="stink-number"><span id="stink-label">100.0</span><small>% STINK</small></div></div><div class="stink-track" id="stink-meter" role="progressbar" aria-label="Stink meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="stink-fill"></i><b title="Reduce stink to 10% to win"></b></div><div class="boss-footer"><span id="boss-action">HE HAS NEVER SEEN SOAP.</span><span>STINK METER · 10% TO WIN <b>◇</b></span></div></div>
+  <div class="controls-strip"><span><kbd>W A S D</kbd> MOVE</span><span><kbd>SPACE</kbd> DODGE</span><span><kbd>LMB</kbd> SHOWER</span><span><kbd>RMB</kbd> JET</span><span><kbd>Q</kbd> LOCK ON</span><span><kbd>F / G</kbd> AUTO WATER</span></div>
+  <div id="boss-line" class="boss-line" aria-live="polite"></div>
+  <div id="toast" aria-live="polite"></div>
+</section>
+<main id="menu" class="screen">
+  <div class="menu-copy"><p class="eyebrow"><span></span> ABANDON ALL GRIME, YE WHO ENTER</p><div class="title-ornament" aria-hidden="true">✧</div><h1>SHOWER<br><em>SOULS</em></h1><p class="intro">Within this forsaken stall, a giant remains unwashed.<br>Take up the hose. See him cleansed.</p><button id="start" class="primary" disabled>PREPARING THE STALL <span aria-hidden="true">◇</span></button><button id="practice" class="quiet practice-button" disabled>PRACTICE CLEANING · PASSIVE BOSS</button><p id="loading">Loading characters and water pressure…</p><div class="menu-facts"><span><b>10%</b> STINK TO WIN</span><span><b>100</b> HP. MAKE IT COUNT.</span></div></div>
+  <div class="field-guide"><span class="tiny">WORDS FOR THE WOULD-BE WASHER</span><div><b>I</b><p><strong>Wield the water.</strong> High-pressure shower for coverage. Focused jet for stubborn patches. Both use water.</p></div><div><b>II</b><p><strong>Heed the warning.</strong> Every slam has a tell. Dodge through the hit, then spray during his recovery.</p></div><div><b>III</b><p><strong>Guard your reserve.</strong> Walk over glowing blue bottles for +45 water. Watch your reserve, keep moving, and wash every side.</p></div><a href="/lab.html">OPEN THE ANIMATION LAB ↗</a></div>
+  <div class="menu-bottom"><span>WASD MOVE · MOUSE AIM · SPACE ROLL · Q LOCK ON</span><span>HEADPHONES & A MOUSE RECOMMENDED</span></div>
+</main>
+<section id="pause" class="screen centered" hidden><div class="panel"><p class="eyebrow">A MOMENT OF REPRIEVE</p><h2>REST AWHILE</h2><p>WASD move · Mouse aim · Space dodge<br>Hold left mouse to shower · Right mouse for jet<br>Q toggles lock on · F / G toggle shower / jet · Esc pauses<br>Water is limited. Run over glowing blue bottles to refill.</p><label class="volume-control" for="audio-volume"><span>Master volume</span><input id="audio-volume" type="range" min="0" max="1" step="0.05" value="0.7" aria-label="Master volume"></label><button id="resume" class="primary">BACK TO THE STALL <span aria-hidden="true">◇</span></button><button id="restart-pause" class="secondary">RESTART FIGHT</button><button id="menu-pause" class="quiet">RETURN TO MENU</button></div></section>
+<section id="result" class="screen centered" hidden><div class="panel"><p id="result-kicker" class="eyebrow"></p><h2 id="result-title"></h2><p id="result-copy"></p><div class="result-stats"><div><b id="result-stink"></b><span>STINK REMAINING</span></div><div><b id="result-time"></b><span>TIME IN THE STALL</span></div></div><button id="retry" class="primary">ENTER THE STALL AGAIN <span aria-hidden="true">◇</span></button><button id="menu-result" class="quiet">RETURN TO MENU</button></div></section>
+<script type="module" src="/dist/game.js"></script>
+</body></html>
