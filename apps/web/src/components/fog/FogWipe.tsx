@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { AnimatedNumber } from "../fx/AnimatedNumber";
 import { CameraMessage } from "../camera/CameraView";
+import { SpongeTracker, type SpongeCursor } from "./sponge-tracker";
 
 type Mode = "camera" | "mock";
 type Phase = "idle" | "wiping" | "done";
@@ -28,7 +29,7 @@ const statusCopy: Record<VisionStatus["state"], string> = {
   error: "",
 };
 
-interface Cursor extends WipePoint { angle: number; moving: boolean }
+type Cursor = SpongeCursor;
 
 /** Synthetic hand that sweeps the frame row by row, for practice without a camera. */
 function mockHand(tMs: number): WipePoint {
@@ -40,16 +41,6 @@ function mockHand(tMs: number): WipePoint {
   return { x, y };
 }
 
-function toCursors(points: readonly WipePoint[], previous: readonly Cursor[]): Cursor[] {
-  return points.map((p, i) => {
-    const prev = previous[i];
-    if (!prev) return { ...p, angle: -0.35, moving: false };
-    const dx = p.x - prev.x, dy = p.y - prev.y;
-    const moving = dx * dx + dy * dy > 0.00004;
-    const target = moving ? Math.max(-0.7, Math.min(0.7, Math.atan2(dy, dx) * 0.35)) : -0.35;
-    return { ...p, angle: prev.angle + (target - prev.angle) * 0.35, moving };
-  });
-}
 
 /** Fog cells plus the sponge, drawn in source (camera) pixel space. The canvas is CSS-mirrored like the video. */
 function drawFog(canvas: HTMLCanvasElement, scratch: HTMLCanvasElement, fog: FogState, width: number, height: number, hands: readonly Cursor[], sponge: HTMLImageElement | null, tMs: number) {
@@ -117,6 +108,7 @@ export function FogWipe() {
   const trackerRef = useRef<TrackingController | null>(null);
   const activityRef = useRef<FogActivity>(createFogActivity());
   const cursorsRef = useRef<Cursor[]>([]);
+  const spongeTracker = useRef(new SpongeTracker());
   const windowRef = useRef<{ startAtMs: number; endAtMs: number } | null>(null);
   const session = useRef(0);
   const mockTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -160,16 +152,13 @@ export function FogWipe() {
     const window = windowRef.current;
     if (window && phase === "wiping") {
       activity.evaluate(frame, { targetId: null, windowStartedAtMs: window.startAtMs, windowEndsAtMs: window.endAtMs });
-      // Keep the mouse sponge on screen while the tracker sees no hand.
-      if (activity.hands.length > 0 || now - lastPointerAt.current > 300) {
-        cursorsRef.current = toCursors(activity.hands, cursorsRef.current);
-        setTracking(activity.hands.length > 0);
-      }
-    } else {
-      const palms = [frame.hands.left, frame.hands.right].filter((h) => h.tracked && h.palm).map((h) => ({ x: h.palm!.x, y: h.palm!.y }));
-      cursorsRef.current = toCursors(palms, cursorsRef.current);
-      setTracking(palms.length > 0);
+      setTracking(activity.hands.length > 0 || now - lastPointerAt.current <= 300);
     }
+    for (const side of ["left", "right"] as const) {
+      const h = frame.hands[side];
+      if (h.tracked && h.palm) spongeTracker.current.observe(side, h.palm.x, h.palm.y, frame.capturedAtMs, now);
+    }
+    if (!window || phase !== "wiping") setTracking(frame.hands.left.tracked || frame.hands.right.tracked);
   }, [phase]);
   const onFrameRef = useRef(onFrame);
   useEffect(() => { onFrameRef.current = onFrame; }, [onFrame]);
@@ -182,7 +171,7 @@ export function FogWipe() {
     setStatus({ state: "initializing" });
     const tracker = createTracking({
       video: videoRef.current,
-      maxFrameAgeMs: 600, // CPU inference can take ~300 ms per frame; a late hand still wipes.
+      maxFrameAgeMs: 900, // CPU inference can take ~500 ms per frame; a late hand still wipes.
       onInfo: (info) => { if (generation === session.current) setDelegates(`pose ${info.delegates.pose.toLowerCase()} · hands ${(info.delegates.hands ?? "off").toLowerCase()}`); },
       onStatus: (value) => { if (generation === session.current) setStatus(value); },
       onFrame: (frame) => { if (generation === session.current) onFrameRef.current(frame); },
@@ -227,6 +216,7 @@ export function FogWipe() {
       const useVideo = mode === "camera" && video && video.videoWidth > 0;
       const w = useVideo ? video.videoWidth : MOCK_SIZE.w;
       const h = useVideo ? video.videoHeight : MOCK_SIZE.h;
+      cursorsRef.current = spongeTracker.current.update(now);
       drawFog(canvas, scratchRef.current, activity.fog, w, h, phase === "idle" ? [] : cursorsRef.current, spongeRef.current, now);
     };
     raf = requestAnimationFrame(tick);
@@ -237,7 +227,7 @@ export function FogWipe() {
     const now = performance.now();
     activityRef.current = createFogActivity({ refogPerSecond: hardMode ? 0.03 : 0 });
     windowRef.current = { startAtMs: now, endAtMs: now + roundSec * 1000 };
-    cursorsRef.current = [];
+    cursorsRef.current = []; spongeTracker.current.clear();
     setFinalScore(null); setCleared(0); setRemainingMs(roundSec * 1000);
     setMode(nextMode);
     if (nextMode === "mock") {
@@ -253,7 +243,7 @@ export function FogWipe() {
         const activity = activityRef.current;
         // Drive the adapter with a minimal synthetic frame: one tracked "left" palm.
         activity.evaluate(mockFrame(t, p), { targetId: null, windowStartedAtMs: win.startAtMs, windowEndsAtMs: win.endAtMs });
-        cursorsRef.current = toCursors(activity.hands, cursorsRef.current);
+        spongeTracker.current.place("mock", p.x, p.y, t);
         setTracking(true);
       }, 1000 / 15);
     }
@@ -285,7 +275,7 @@ export function FogWipe() {
     const activity = activityRef.current;
     lastPointerAt.current = performance.now();
     activity.evaluate(mockFrame(lastPointerAt.current, p, "camera"), { targetId: null, windowStartedAtMs: win.startAtMs, windowEndsAtMs: win.endAtMs });
-    cursorsRef.current = toCursors(activity.hands, cursorsRef.current);
+    spongeTracker.current.place("mouse", p.x, p.y, lastPointerAt.current);
     setTracking(true);
   }, [phase]);
 

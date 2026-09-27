@@ -179,7 +179,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
 
     const detector = new PlacementScrubDetector();
     const tracker = createTracking({
-      maxFrameAgeMs: 600, // slow CPU inference (~300 ms) must still count as a tracked hand
+      maxFrameAgeMs: 900, // slow CPU inference (up to ~500 ms) must still count as a tracked hand
       video,
       onStatus: (next) => {
         if (!current()) return;

@@ -65,6 +65,8 @@ export interface FogState {
   lastAdvanceAtMs: number | null;
   /** Once frozen, wipes and refog are ignored. Set at the agent deadline. */
   frozen: boolean;
+  /** Bumped whenever cells change, so renderers can cache the blurred image. */
+  version: number;
   readonly config: FogConfig;
 }
 
@@ -79,6 +81,7 @@ export function createFog(overrides: Partial<FogConfig> = {}): FogState {
     lastPoints: [],
     lastAdvanceAtMs: null,
     frozen: false,
+    version: 0,
     config,
   };
 }
@@ -136,6 +139,7 @@ export function advanceFog(fog: FogState, nowMs: number): void {
   if (add <= 0) return;
   const c = fog.cells;
   for (let i = 0; i < c.length; i++) c[i] = Math.min(1, c[i] + add);
+  fog.version++;
 }
 
 /** Lock the state at the agent deadline. Late samples cannot change the result. */
@@ -201,7 +205,8 @@ function wipeAt(fog: FogState, p: WipePoint): void {
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d >= 1) continue;
       const i = r * cols + c;
-      cells[i] = Math.max(0, cells[i] - wipeStrength * (1 - d));
+      const next = Math.max(0, cells[i] - wipeStrength * (1 - d));
+      if (next !== cells[i]) { cells[i] = next; fog.version++; }
     }
   }
 }
