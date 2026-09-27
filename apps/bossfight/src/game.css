@@ -47,7 +47,7 @@ h1 em { font-style: normal; color: #c1a575; letter-spacing: 10px; }
 .primary { display: flex; align-items: center; justify-content: center; padding: 16px 38px; min-height: 54px; margin: 0 auto; }
 .primary::before { content: '◆'; position: absolute; left: 14px; font-size: 6px; color: #9a8050; }
 .primary span { position: absolute; right: 16px; font-size: 13px; color: #bba06a; }
-.primary:hover:not(:disabled), .secondary:hover { background: linear-gradient(90deg, #332414d9, #685032c2 50%, #332414d9); border-color: #b3965c; color: #fff0cd; }
+.primary:hover:not(:disabled), .secondary:hover:not(:disabled) { background: linear-gradient(90deg, #332414d9, #685032c2 50%, #332414d9); border-color: #b3965c; color: #fff0cd; }
 .secondary { padding: 13px 18px; margin-top: 12px; font-size: 11px; background: #18130d88; }
 .practice-button { display: block; margin: 8px auto 0; font-size: 9px; letter-spacing: 1.3px; padding: 11px 0 0; }
 #loading { font-size: 12px; color: #8f8067; margin: 10px 0 23px; font-style: italic; }
@@ -225,7 +225,9 @@ kbd { border: 1px solid #9d865142; border-radius: 0; padding: 3px 5px; font-size
   *, *::before, *::after { transition-duration: 0s !important; }
 }
 
-.party-button { padding-top: 6px; color: #c7b17e; }
+.party-button { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; margin: 10px auto 0; font-size: 11px; }
+.party-button svg { width: 20px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; flex: none; }
+.party-button small { font-size: 8px; letter-spacing: 1.4px; color: #9f8a5e; border-left: 1px solid #8d774a8c; padding-left: 10px; }
 .party-panel { width: 520px; }
 .party-panel h2 { margin: 14px 0 22px; }
 .party-field { display: flex; flex-direction: column; gap: 8px; width: 350px; max-width: 100%; margin: 0 auto 18px; text-align: left; font-family: 'Cinzel', Georgia, serif; font-size: 9px; letter-spacing: 1.4px; color: #a8966f; }
