@@ -1,12 +1,22 @@
 # Agent handoff
 
-Read this before changing the game. [`docs/technical-guide.md`](docs/technical-guide.md) is the full team
-contract (sessions, engine, vision, scoring); this file covers the playable UI that now sits on top of it and
-what to build next. [`README.md`](README.md) is the plain-language overview for people and judges; keep it
-free of implementation detail.
+## The project is Shower Souls
+
+Our hackathon submission is **Shower Souls**, the 3D hose boss fight in `apps/bossfight/`
+(`npm run boss:dev`, http://127.0.0.1:4173, tests with `npm run test:boss`). Its file map, timings and
+cleaning rules are in the Shower Souls section of [`docs/technical-guide.md`](docs/technical-guide.md#separate-project-shower-souls).
+
+[`README.md`](README.md) is for judges and people, and it covers only Shower Souls. Keep it plain-language
+and free of implementation detail; put technical detail in the technical guide instead.
+
+## Webcam prototype (Vibecodemaxxing)
+
+Everything below is about the earlier webcam game in `apps/web` and `packages/`. It isn't part of the
+submission. [`docs/technical-guide.md`](docs/technical-guide.md) is its full team contract (sessions, engine,
+vision, scoring); this section covers the playable UI on top of it.
 Next.js in `apps/web` has its own rules in [`apps/web/AGENTS.md`](apps/web/AGENTS.md).
 
-## Run it
+### Run it
 
 ```sh
 npm install
@@ -18,7 +28,7 @@ npm run typecheck && npm test && npm run validate:sessions
 Use a Chromium browser on localhost and allow the camera. "Practice without a camera" plays a full round
 with a fake shower.
 
-## What exists
+### What exists
 
 - **Screens:** lobby (`/`), play (`/play`), results (`/results`) in `apps/web/src/components/{lobby,play,results}`.
 - **Game loop:** `components/design/design-game.ts` is a stand-in for `createGame`. It follows the technical
@@ -36,7 +46,7 @@ with a fake shower.
 - **Brand:** `apps/brand` renders the real `globals.css` and `components/ui`. Flat Framer style: black
   canvas, white type, one blue. No gradients. Light-grey card (`bg-prompt`) = typing, solid blue (`bg-water`) = shower.
 
-## Next task: build the bathroom you're showering in, instead of coding sessions
+### Next task: build the bathroom you're showering in, instead of coding sessions
 
 Playtesters find the right-hand terminal boring: typing produces fake npm output, so the only visible
 progress is cleaning. Replace the coding-agent fiction with a **bathroom renovation**:
@@ -63,7 +73,7 @@ Suggested order:
 
 Other options are in [`docs/ideas.md`](docs/ideas.md).
 
-## Rules that keep the game working
+### Rules that keep the game working
 
 - The engine owns phases, timing, and points. The UI renders snapshots and never advances the game.
 - Keep `@vibecodemaxxing/contracts` changes coordinated; update `docs/technical-guide.md` with them.

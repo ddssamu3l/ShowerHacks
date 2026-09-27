@@ -1,9 +1,6 @@
-# ShowerHacks
+# Shower Souls
 
-**Two silly games about staying clean while computers do the work.** We built them at a hackathon.
-
-1. **Shower Souls:** a 3D boss fight in your browser. You're **Linglong**, armed with a garden hose, and you have to wash a giant, filthy boss covered in tech company stickers. Up to three friends can join you.
-2. **Vibecodemaxxing:** a webcam party game. You type orders to a pretend AI helper, and while it "works", you scrub yourself in front of your camera like you're in the shower.
+**A 3D boss fight where your only weapon is a garden hose.** You play as **Linglong** and have to wash a giant, filthy boss covered in tech company stickers before he knocks you out. Play alone or with up to two friends, right in your browser.
 
 ---
 
@@ -11,25 +8,33 @@
 
 | Question | Answer |
 | --- | --- |
-| **What is it?** | Two browser games: a 3D boss fight and a webcam scrubbing game. |
-| **What frameworks?** | **Three.js** draws the 3D boss fight. **Next.js** (a React website framework) runs the webcam game. |
-| **Which AI models?** | **Google MediaPipe** watches your body and hands through the webcam. **OpenAI GPT-4.1 mini** grades the word quiz. **Tripo** (an AI 3D-model maker) created the characters. |
-| **Does my video leave my computer?** | No. The camera model runs inside your browser, and no video is uploaded. |
-| **Where does it run?** | Any Chromium browser (Chrome, Arc, Edge) on a computer. The boss fight is hosted on Railway. |
+| **What is it?** | A browser boss fight inspired by Dark Souls, except you win by giving the boss a shower. |
+| **What framework?** | **Three.js**, a JavaScript library for drawing 3D worlds in a web browser. |
+| **Which AI models?** | **Tripo** (an AI 3D-model maker) created the characters. **DeepFilterNet** (an AI noise remover) cleaned up Linglong's voice. The boss's voice is macOS text-to-speech. |
+| **Is the boss an AI?** | No. His fighting brain is rules we wrote ourselves. |
+| **Where does it run?** | Any modern browser on a computer with a mouse. Online play runs on a small server hosted on Railway. |
 
 ---
 
-## Game 1: Shower Souls
-
-### The story
+## The story
 
 A giant who has never used soap lives deep inside an enormous shower. His name is **The Unwashed**. He's three times taller than you, covered in mud, and he stinks.
 
 You're **Linglong**, a normal guy in a hoodie holding a garden hose. Get the giant clean before he knocks you out.
 
-The giant is covered in stickers you'd find on a programmer's laptop: **Y Combinator, Stanford, OpenAI, Anthropic, Google DeepMind, Groq, and Cluely**. When you wash him, the stickers wash off with the dirt. His attacks make fun of the tech world too. He yells *"YOU WILL NOT GET INTO YC!"* and fires a giant orange blast, drops a Claude logo from the sky, sends a swarm of tiny robot "agents" after you, and stomps the floor while shouting *"DEADLINE!"*
+The giant is covered in stickers you'd find on a programmer's laptop: **Y Combinator, Stanford, OpenAI, Anthropic, Google DeepMind, Groq, and Cluely**. When you wash him, the stickers wash off with the dirt. His attacks make fun of the tech world too:
 
-### How to win
+- **YC Rejection:** he yells *"YOU WILL NOT GET INTO YC!"* and fires a giant orange blast.
+- **Claude Drop:** a Claude logo falls from the sky.
+- **Agent Swarm:** tiny robot "agents" rain down around you.
+- **Deadline Stomp:** he stomps the floor shouting *"DEADLINE!"* and rocks burst out of the ground.
+- **Superman slam:** he leaps across the room and lands on you.
+
+Linglong talks back. Sometimes when he turns on the hose, he says things like *"Man, this code is some trash."* His voice comes from a real video recording.
+
+---
+
+## How to play
 
 The bar at the bottom is the **Stink Meter**. It starts at 100%. Spray the giant until it drops to **10%**. If your health bar (top left) hits zero first, you lose.
 
@@ -47,53 +52,42 @@ The bar at the bottom is the **Stink Meter**. It starts at 100%. Spray the giant
 - **Watch for warnings.** Before each attack, he winds up or a marker appears on the floor. Roll away, then spray him while he recovers.
 - **Wash every side.** Only the spots the water actually hits get clean.
 
-### Play with friends
-
-Click **Play with friends**. You get a 4-letter room code; up to two friends type it in to join. Everyone fights the same giant, and he gets tougher with each extra player. At the end you see who did the most cleaning.
+**Play with friends:** click **Play with friends** to get a 4-letter room code. Up to two friends type it in to join. Everyone fights the same giant, he gets tougher with each extra player, and at the end you see who did the most cleaning.
 
 ---
 
-## Game 2: Vibecodemaxxing
+## How it works
 
-1. **Type fast.** An order appears, like "Make a button." Type it quickly and exactly. Typos, long pauses and backspaces cost points.
-2. **Shower while the "AI" works.** A pretend AI helper then does the job (it's all scripted for laughs). While it works, you **scrub yourself in front of the webcam**. The screen shows you covered in mud, and scrubbing washes it away.
-3. **Mini-games take turns with the shower:** wipe a foggy bathroom mirror with your hand, or do the "six seven" dance (palms up, rocking like a scale).
-4. **Word quizzes** ask what internet slang means, like "yap", "cracked" or "clanker". An AI checks whether you got the meaning right.
+### The game
 
-Your final score is half typing, half scrubbing, out of 10,000.
+Everything happens inside your browser. Many times a second, the game:
 
----
+1. Reads your keyboard and mouse.
+2. Moves Linglong and the boss, and plays their animations.
+3. Shoots the water forward in a curved arc (gravity pulls it down) and checks which part of the boss it hits.
+4. Checks whether a boss attack caught you, unless you rolled out of the way in time.
+5. Redraws the whole 3D scene with Three.js.
 
-## How the AI parts work
+### Washing the boss
 
-### Watching you through the webcam (Google MediaPipe)
+We have **two versions** of the boss: a dirty one covered in mud and stickers, and a clean one in plain clothes. When water hits a spot on the boss, that spot slowly fades from dirty to clean, like wiping a window. The rest of him stays filthy.
 
-We use two small models from Google's **MediaPipe**:
+The Stink Meter measures how much of the boss's **surface area** is clean, so spraying the same spot over and over doesn't help. You have to cover all of him, including his back.
 
-- **Pose Landmarker** finds 33 points on your body: shoulders, elbows, face, and so on.
-- **Hand Landmarker** finds 21 points on each hand, down to your fingertips.
+### The 3D models
 
-About 20 times a second, the browser grabs a camera frame and asks both models, "Where are this person's body and hands?" The models answer with dots, not pictures. Our code then uses those dots to figure out things like:
+1. **Tripo**, an AI tool, created the 3D models of Linglong and the boss, including their textures.
+2. We added a **skeleton** inside each character (bones for arms, legs, spine) so they can move.
+3. We wrote **every animation in code**: walking, rolling, stomping, getting knocked down. Then we saved them as smooth 60-frames-per-second clips.
+4. The AI-made outfit had company logos baked into it, so we used **Blender** (a free 3D program) to make a clean, logo-free version of the boss.
 
-- **Is your hand on your chest, hair, armpit or shoulder?** It checks which body area your palm overlaps.
-- **Are you really scrubbing?** It looks for back-and-forth or circular movement. Holding still or waving your hand in the air earns nothing.
-- **Did you wipe the mirror, or rock your palms "six... seven"?** Each mini-game reads the same dots in its own way.
+### The boss's brain
 
-The models run on your own computer, inside the browser, so the video never goes anywhere.
+The boss isn't a trained AI model. He follows rules we wrote: turn toward the player, walk closer if you're far away, pick an attack he hasn't just used, and leave a short opening after each attack so you can hit back.
 
-We built one shared **tracking framework** on top of MediaPipe. It turns the camera into a single stream of "here's the body, here are the hands" updates. Every mini-game (shower, mirror, six seven) plugs into that stream instead of setting up the camera itself, which made adding new mini-games quick.
+### Playing together
 
-### Grading the word quiz (OpenAI GPT-4.1 mini)
-
-When you type a definition, our server sends your answer and the correct meaning to **GPT-4.1 mini**. It scores how close your answer's *meaning* is (0 to 100), so paraphrases and small spelling mistakes still count. Faster answers earn a bonus. The correct answers and the API key stay on the server, so players can't peek.
-
-### Making the characters (Tripo)
-
-Linglong and the giant started as 3D models made with **Tripo**, an AI tool that creates 3D characters. We then added skeletons, wrote every animation by hand in code, and used Blender to make a clean, logo-free version of the giant. As you spray him, the game blends from the dirty model to the clean one in the exact spots the water hits.
-
-### What *isn't* AI
-
-The giant's fighting brain is rules we wrote ourselves, not a trained model: how he picks attacks, chases the closest player, and sometimes turns on whoever sprayed him last. The pretend AI helper in the typing game is also fully scripted.
+When you play with friends, a small **Node.js server** runs the boss's brain instead of your browser, about 30 times a second. Each player's game sends where they are and what they sprayed; the server sends back what the boss does. That way everyone sees the same fight at the same moment.
 
 ---
 
@@ -101,34 +95,28 @@ The giant's fighting brain is rules we wrote ourselves, not a trained model: how
 
 | Part | Tools |
 | --- | --- |
-| **3D boss fight** | [Three.js](https://threejs.org) for 3D graphics, plain JavaScript |
-| **Characters and animation** | Tripo (AI 3D models), Blender, and our own animation code |
-| **Playing with friends** | A Node.js server using WebSockets that keeps everyone's fight in sync 30 times a second |
-| **Sound** | The browser's Web Audio API. Boss lines use macOS text-to-speech; Linglong's voice comes from a real recording, cleaned up with DeepFilterNet and FFmpeg |
-| **Webcam game** | [Next.js](https://nextjs.org), React, TypeScript and Tailwind CSS |
-| **Body and hand tracking** | Google [MediaPipe](https://developers.google.com/edge/mediapipe) Pose and Hand Landmarker, running in the browser |
-| **Water and bubbles** | PixiJS |
-| **Word quiz judge** | OpenAI GPT-4.1 mini |
+| **3D graphics** | [Three.js](https://threejs.org), plain JavaScript |
+| **Characters** | Tripo (AI 3D models), Blender, and our own animation code |
+| **Playing with friends** | Node.js server using WebSockets |
+| **Music and voices** | The browser's Web Audio API. Boss lines use macOS text-to-speech. Linglong's voice is a real recording, cleaned up with DeepFilterNet and FFmpeg |
 | **Hosting** | [Railway](https://railway.com) |
 
 ---
 
 ## Try it yourself
 
-You need [Node.js](https://nodejs.org) 22 or newer.
+You need [Node.js](https://nodejs.org) 22 or newer and a computer with a mouse. Headphones make it better.
 
 ```sh
 npm install
-
-npm run boss:dev   # Shower Souls → open http://127.0.0.1:4173
-npm run dev        # Vibecodemaxxing → open http://localhost:3000 and allow the camera
+npm run boss:dev
+# open http://127.0.0.1:4173
 ```
-
-No camera? Click **Practice without a camera** in Vibecodemaxxing. The word quiz needs an OpenAI key: copy `apps/web/.env.example` to `apps/web/.env.local` and fill in `OPENAI_API_KEY`.
 
 ---
 
 ## For developers
 
-- [`docs/technical-guide.md`](docs/technical-guide.md): how every piece fits together, the exact scoring math, and file-by-file ownership.
-- [`AGENTS.md`](AGENTS.md): the handoff notes for AI coding agents and new contributors.
+- The game lives in [`apps/bossfight/`](apps/bossfight). The [Shower Souls section of the technical guide](docs/technical-guide.md#separate-project-shower-souls) covers every file, the attack timings, and how cleaning is calculated.
+- [`AGENTS.md`](AGENTS.md) holds the handoff notes for AI coding agents.
+- The rest of this repo (`apps/web`, `packages/`) holds an earlier webcam game prototype. It isn't part of Shower Souls.
